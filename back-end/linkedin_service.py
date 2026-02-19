@@ -16,7 +16,8 @@ class LinkedInService:
     def __init__(self):
         print("LinkedInService INITIALIZED")
         with open("scraper_debug.log", "a", encoding="utf-8") as log:
-            log.write("LinkedInService INITIALIZED\n")
+            log.write(f"\n--- LinkedInService INIT: {time.ctime()} ---\n")
+            log.write(f"PLAYWRIGHT_BROWSERS_PATH: {os.getenv('PLAYWRIGHT_BROWSERS_PATH')}\n")
         self.email = LINKEDIN_EMAIL
         self.password = LINKEDIN_PASSWORD
         self.use_headless = True # MUST be True for Render/Linux production
@@ -135,9 +136,22 @@ class LinkedInService:
 
         async with async_playwright() as p:
             # Launch browser
-            browser = await p.chromium.launch(headless=self.use_headless)
-            context = await browser.new_context()
-            page = await context.new_page()
+            try:
+                # Log executable check if path is set
+                if os.getenv('PLAYWRIGHT_BROWSERS_PATH'):
+                    with open("scraper_debug.log", "a", encoding="utf-8") as log:
+                        log.write(f"Attempting to launch browser using path: {os.getenv('PLAYWRIGHT_BROWSERS_PATH')}\n")
+
+                browser = await p.chromium.launch(headless=self.use_headless)
+                context = await browser.new_context()
+                page = await context.new_page()
+            except Exception as e:
+                import traceback
+                error_msg = traceback.format_exc()
+                with open("scraper_debug.log", "a", encoding="utf-8") as log:
+                    log.write(f"FATAL: Browser launch failed: {e}\n{error_msg}\n")
+                print(f"FATAL: Browser launch failed: {e}")
+                return []
             
             try:
                 # 1. Login

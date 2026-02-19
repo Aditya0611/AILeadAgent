@@ -27,10 +27,16 @@ app = FastAPI(title="Lead Generation API")
 
 @app.on_event("startup")
 async def startup_event():
+    import os
     loop = asyncio.get_running_loop()
     with open("api_trace.log", "a", encoding="utf-8") as f:
+        f.write(f"\n--- API STARTUP: {datetime.now()} ---\n")
         f.write(f"Startup event loop: {type(loop)}\n")
+        f.write(f"Working Directory: {os.getcwd()}\n")
+        f.write(f"PLAYWRIGHT_BROWSERS_PATH: {os.getenv('PLAYWRIGHT_BROWSERS_PATH')}\n")
     print(f"Startup event loop: {type(loop)}")
+    print(f"Working Directory: {os.getcwd()}")
+    print(f"PLAYWRIGHT_BROWSERS_PATH: {os.getenv('PLAYWRIGHT_BROWSERS_PATH')}")
 
 # Enable CORS for frontend
 app.add_middleware(
