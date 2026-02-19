@@ -24,3 +24,5 @@ rich
 tqdm
 typing-extensions
 urllib3
+playwright
+playwright-stealth
