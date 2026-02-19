@@ -349,6 +349,19 @@ async def debug_status():
     except:
         files = ["Error listing directory"]
 
+    # Tail logs
+    logs = {}
+    for log_file in ["api_trace.log", "scraper_debug.log"]:
+        if os.path.exists(log_file):
+            try:
+                with open(log_file, "r", encoding="utf-8") as f:
+                    content = [line.strip() for line in f.readlines()]
+                    logs[log_file] = content[-50:]
+            except Exception as e:
+                logs[log_file] = [f"Error reading log: {str(e)}"]
+        else:
+            logs[log_file] = ["File not found"]
+
     return {
         "status": "online",
         "timestamp": str(datetime.now()),
@@ -359,7 +372,8 @@ async def debug_status():
             "LINKEDIN_PASSWORD_SET": bool(os.getenv('LINKEDIN_PASSWORD')),
             "WORKING_DIR": os.getcwd()
         },
-        "browser_dir_contents": files[:10] # Show first 10 items
+        "browser_dir_contents": files[:10],
+        "logs": logs
     }
 
 def main():
