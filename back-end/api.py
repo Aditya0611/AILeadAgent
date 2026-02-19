@@ -325,6 +325,12 @@ async def enrich_lead_managers(lead_id: str):
                 f.write("⚠️ Warning: Lead updated locally but could not save to Supabase (client offline)\n")
         
         return {"message": "Lead enriched with manager details", "managers": managers}
+    except Exception as e:
+        import traceback
+        error_msg = traceback.format_exc()
+        with open("api_trace.log", "a", encoding="utf-8") as f:
+            f.write(f"ERROR in enrichment: {str(e)}\n{error_msg}\n")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/debug/status")
 async def debug_status():
@@ -355,13 +361,6 @@ async def debug_status():
         },
         "browser_dir_contents": files[:10] # Show first 10 items
     }
-        
-    except Exception as e:
-        import traceback
-        error_msg = traceback.format_exc()
-        with open("api_trace.log", "a", encoding="utf-8") as f:
-            f.write(f"ERROR in enrichment: {str(e)}\n{error_msg}\n")
-        raise HTTPException(status_code=500, detail=str(e))
 
 def main():
     import uvicorn
