@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lead Generation Dashboard</title>
+    <meta name="description" content="AI-powered lead generation and management dashboard">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <div class="dashboard">
+
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="header-brand">
+                    <div class="header-icon">🎯</div>
+                    <div>
+                        <h1>Lead Generation Dashboard</h1>
+                        <div class="header-subtitle">AI-powered lead discovery & management</div>
+                    </div>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-secondary" onclick="exportCSV()" id="exportBtn">
+                        📥 Export CSV
+                    </button>
+                    <button class="btn btn-primary" onclick="openAgentModal()" id="runAgentBtn">
+                        🤖 Run Agent
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Stats Cards -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon-wrap">📊</div>
+                <div class="stat-content">
+                    <div class="stat-label">Total Leads</div>
+                    <div class="stat-value" id="totalLeads">—</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon-wrap">⭐</div>
+                <div class="stat-content">
+                    <div class="stat-label">Qualified Leads</div>
+                    <div class="stat-value" id="qualifiedLeads">—</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon-wrap">📈</div>
+                <div class="stat-content">
+                    <div class="stat-label">Average Score</div>
+                    <div class="stat-value" id="avgScore">—</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filters Bar -->
+        <div class="filters-bar">
+            <div class="filter-group">
+                <span class="filter-icon">🔍</span>
+                <input type="text" id="searchInput" placeholder="Search by name, company, email…"
+                    onkeyup="filterLeads()">
+            </div>
+            <div class="filter-group" style="max-width: 180px;">
+                <span class="filter-icon">🏷</span>
+                <select id="statusFilter" onchange="filterLeads()">
+                    <option value="">All Statuses</option>
+                    <option value="new">New</option>
+                    <option value="qualified">Qualified</option>
+                    <option value="contacted">Contacted</option>
+                    <option value="interested">Interested</option>
+                    <option value="rejected">Rejected</option>
+                </select>
+            </div>
+            <div class="filter-group" style="max-width: 150px;">
+                <span class="filter-icon">🎯</span>
+                <input type="number" id="minScoreFilter" placeholder="Min score" min="0" max="10" step="0.1"
+                    onchange="filterLeads()">
+            </div>
+            <div class="filter-divider"></div>
+            <button class="btn btn-secondary btn-sm" onclick="resetFilters()" id="clearFiltersBtn">✕ Clear</button>
+            <button class="btn btn-primary btn-sm" onclick="openAddLeadModal()" id="addLeadBtn">+ Add Lead</button>
+        </div>
+
+        <!-- Leads Table -->
+        <div class="table-container">
+            <div class="table-header">
+                <div class="table-title">
+                    All Leads
+                    <span class="leads-count-badge" id="leadsCountBadge">0</span>
+                </div>
+                <button class="btn btn-secondary btn-sm" onclick="loadLeads(); loadStats();" id="refreshBtn">🔄
+                    Refresh</button>
+            </div>
+            <table class="leads-table">
+                <thead>
+                    <tr>
+                        <th>Lead</th>
+                        <th>Company</th>
+                        <th>Links</th>
+                        <th>Score</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="leadsTableBody">
+                    <tr>
+                        <td colspan="6" class="loading">
+                            <span class="loading-spinner"></span>
+                            Loading leads… (API on port 8001)
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+
+    <!-- Add/Edit Lead Modal -->
+    <div id="leadModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">✏️ Add New Lead</h2>
+                <button class="close-btn" onclick="closeLeadModal()" title="Close">✕</button>
+            </div>
+            <form id="leadForm" onsubmit="saveLead(event)">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Name *</label>
+                        <input type="text" id="leadName" placeholder="Full name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Company</label>
+                        <input type="text" id="leadCompany" placeholder="Company name">
+                    </div>
+                    <div class="form-group">
+                        <label>Website</label>
+                        <input type="url" id="leadWebsite" placeholder="https://…">
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="leadEmail" placeholder="email@domain.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Phone</label>
+                        <input type="tel" id="leadPhone" placeholder="+1 (555) 000-0000">
+                    </div>
+                    <div class="form-group">
+                        <label>LinkedIn URL</label>
+                        <input type="url" id="leadLinkedIn" placeholder="https://linkedin.com/in/…">
+                    </div>
+                    <div class="form-group">
+                        <label>Funding Info</label>
+                        <input type="text" id="leadFunding" placeholder="e.g. Series A, $10M">
+                    </div>
+                    <div class="form-group">
+                        <label>Employees</label>
+                        <input type="text" id="leadEmployees" placeholder="e.g. 50-200">
+                    </div>
+                    <div class="form-group">
+                        <label>Score (0–10)</label>
+                        <input type="number" id="leadScore" min="0" max="10" step="0.1" value="0" placeholder="0.0">
+                    </div>
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select id="leadStatus">
+                            <option value="new">New</option>
+                            <option value="qualified">Qualified</option>
+                            <option value="contacted">Contacted</option>
+                            <option value="interested">Interested</option>
+                            <option value="rejected">Rejected</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Industry Tags (comma-separated)</label>
+                    <input type="text" id="leadTags" placeholder="e.g. SaaS, AI, B2B">
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="leadDescription" rows="3" placeholder="Brief description or notes…"></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeLeadModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="saveLeadBtn">💾 Save Lead</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Run Agent Modal -->
+    <div id="agentModal" class="modal">
+        <div class="modal-content" style="max-width: 520px;">
+            <div class="modal-header">
+                <h2>🤖 Run Lead Generation Agent</h2>
+                <button class="close-btn" onclick="closeAgentModal()" title="Close">✕</button>
+            </div>
+            <form id="agentForm" onsubmit="runAgent(event)">
+                <div class="form-group">
+                    <label>Industry *</label>
+                    <input type="text" id="agentIndustry" placeholder="e.g. SaaS, E-commerce, FinTech" required>
+                </div>
+                <div class="form-group">
+                    <label>Location</label>
+                    <input type="text" id="agentLocation" placeholder="e.g. New York, San Francisco">
+                </div>
+                <div class="form-group">
+                    <label>Target Persona</label>
+                    <input type="text" id="agentPersona" placeholder="e.g. Marketing Managers, CTOs">
+                </div>
+                <div class="form-group">
+                    <label>Keywords (comma-separated)</label>
+                    <input type="text" id="agentKeywords" placeholder="e.g. AI, Automation, Cloud">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeAgentModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="runAgentSubmitBtn">🚀 Run Agent</button>
+                </div>
+            </form>
+            <div id="agentStatus" class="agent-status"></div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+venv/
+env/
+
+# Environment / Secrets - NEVER COMMIT
+.env
+*.env
+
+# Large log files
+*.log
+backend_full.log
+frontend_full.log
+api_stdout.log
+api_stderr.log
+api_trace.log
+backend_tunnel.log
+
+# Debug/temp files
+debug_page.html
+back-end/debug_page.html
+back-end/item.html
+debug_*.html
+debug_*.png
+*.png
+*.txt
+
+# Output files
+backend_url.txt
+analysis_result*.txt
+check_output.txt
+debug_output.txt
+test_output.txt
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
