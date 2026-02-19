@@ -19,7 +19,7 @@ class LinkedInService:
             log.write("LinkedInService INITIALIZED\n")
         self.email = LINKEDIN_EMAIL
         self.password = LINKEDIN_PASSWORD
-        self.use_headless = False # Set to False to see the browser window
+        self.use_headless = True # MUST be True for Render/Linux production
 
     async def enrich_manager_profiles(self, manager_list: list):
         """
