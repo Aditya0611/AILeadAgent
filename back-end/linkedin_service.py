@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from config import LINKEDIN_ACCESS_TOKEN, BROWSER_HEADLESS # Keep for fallback or other uses?
+from config import LINKEDIN_ACCESS_TOKEN, BROWSER_HEADLESS
 # New credentials
 LINKEDIN_EMAIL = os.getenv("LINKEDIN_EMAIL")
 LINKEDIN_PASSWORD = os.getenv("LINKEDIN_PASSWORD")
@@ -20,7 +20,7 @@ class LinkedInService:
             log.write(f"PLAYWRIGHT_BROWSERS_PATH: {os.getenv('PLAYWRIGHT_BROWSERS_PATH')}\n")
         self.email = LINKEDIN_EMAIL
         self.password = LINKEDIN_PASSWORD
-        self.use_headless = True # MUST be True for Render/Linux production
+        self.use_headless = BROWSER_HEADLESS # Use config (False for local viewing)
 
     async def enrich_manager_profiles(self, manager_list: list):
         """
@@ -168,9 +168,10 @@ class LinkedInService:
                         log.write("   ✅ Login Successful!\n")
                     print("   Login Successful!")
                 except:
+                    await page.screenshot(path="debug_login_failure.png")
                     with open("scraper_debug.log", "a", encoding="utf-8") as log:
-                        log.write("   ⚠️ Login challenge or timeout.\n")
-                    print("   ⚠️ Login might have failed or verify challenge appeared.")
+                        log.write("   ⚠️ Login challenge or timeout. Screenshot saved to debug_login_failure.png\n")
+                    print("   ⚠️ Login might have failed or verify challenge appeared. Screenshot saved.")
                 
                 # 2. Search for Managers
                 search_query = f"Manager at {company_name}"
