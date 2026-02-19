@@ -34,9 +34,14 @@ async def startup_event():
         f.write(f"Startup event loop: {type(loop)}\n")
         f.write(f"Working Directory: {os.getcwd()}\n")
         f.write(f"PLAYWRIGHT_BROWSERS_PATH: {os.getenv('PLAYWRIGHT_BROWSERS_PATH')}\n")
+        f.write(f"LINKEDIN_EMAIL set: {bool(os.getenv('LINKEDIN_EMAIL'))}\n")
+        f.write(f"LINKEDIN_PASSWORD set: {bool(os.getenv('LINKEDIN_PASSWORD'))}\n")
+    
     print(f"Startup event loop: {type(loop)}")
     print(f"Working Directory: {os.getcwd()}")
     print(f"PLAYWRIGHT_BROWSERS_PATH: {os.getenv('PLAYWRIGHT_BROWSERS_PATH')}")
+    print(f"LINKEDIN_EMAIL present: {bool(os.getenv('LINKEDIN_EMAIL'))}")
+    print(f"LINKEDIN_PASSWORD present: {bool(os.getenv('LINKEDIN_PASSWORD'))}")
 
 # Enable CORS for frontend
 app.add_middleware(
@@ -320,6 +325,36 @@ async def enrich_lead_managers(lead_id: str):
                 f.write("⚠️ Warning: Lead updated locally but could not save to Supabase (client offline)\n")
         
         return {"message": "Lead enriched with manager details", "managers": managers}
+
+@app.get("/debug/status")
+async def debug_status():
+    """Diagnostic endpoint to check environment state"""
+    import os
+    import subprocess
+    
+    browser_path = os.getenv('PLAYWRIGHT_BROWSERS_PATH', 'Not Set')
+    path_exists = os.path.exists(browser_path) if browser_path != 'Not Set' else False
+    
+    try:
+        # Check if chromium is actually there if path is set
+        files = []
+        if path_exists:
+            files = os.listdir(browser_path)
+    except:
+        files = ["Error listing directory"]
+
+    return {
+        "status": "online",
+        "timestamp": str(datetime.now()),
+        "env": {
+            "PLAYWRIGHT_BROWSERS_PATH": browser_path,
+            "PATH_EXISTS": path_exists,
+            "LINKEDIN_EMAIL_SET": bool(os.getenv('LINKEDIN_EMAIL')),
+            "LINKEDIN_PASSWORD_SET": bool(os.getenv('LINKEDIN_PASSWORD')),
+            "WORKING_DIR": os.getcwd()
+        },
+        "browser_dir_contents": files[:10] # Show first 10 items
+    }
         
     except Exception as e:
         import traceback
