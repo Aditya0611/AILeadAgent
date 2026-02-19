@@ -6,6 +6,7 @@ let currentEditId = null;
 
 // ===== INIT =====
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('App started. API_URL:', API_URL);
     loadLeads();
     loadStats();
 });

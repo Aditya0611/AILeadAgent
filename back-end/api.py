@@ -378,10 +378,14 @@ async def debug_status():
 
 def main():
     import uvicorn
+    import os
+    port = int(os.environ.get("PORT", 8001))
+    
     if sys.platform == 'win32':
         asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
     
-    config = uvicorn.Config("api:app", host="0.0.0.0", port=8001, reload=False, loop="asyncio")
+    print(f"Starting server on port {port}")
+    config = uvicorn.Config("api:app", host="0.0.0.0", port=port, reload=False, loop="asyncio")
     server = uvicorn.Server(config)
     
     # Use a specific way to run the server on Windows to ensure Proactor
