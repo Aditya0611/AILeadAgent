@@ -319,8 +319,11 @@ async def enrich_lead_managers(lead_id: str):
         
         # Update lead
         if db.supabase:
+            print(f"API: Updating Supabase for lead {lead_id}...")
             response = db.supabase.table("leads").update({"managers_info": managers}).eq("id", lead_id).execute()
+            print(f"API: Supabase update status: {response.data is not None}")
         else:
+            print("API: ⚠️ Warning: Supabase client not initialized")
             with open("api_trace.log", "a", encoding="utf-8") as f:
                 f.write("⚠️ Warning: Lead updated locally but could not save to Supabase (client offline)\n")
         

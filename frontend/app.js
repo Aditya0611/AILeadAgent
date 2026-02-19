@@ -377,8 +377,15 @@ async function handleManagers(id) {
 
 async function fetchManagers(id) {
     showToast('Fetching managers…', 'info', 6000);
+    const startTime = Date.now();
     try {
-        const response = await fetch(`${API_URL}/leads/${id}/enrich-managers`, { method: 'POST' });
+        console.log(`Sending enrichment request for ${id} to ${API_URL}`);
+        const response = await fetch(`${API_URL}/leads/${id}/enrich-managers`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        console.log(`Response received in ${(Date.now() - startTime) / 1000}s. Status: ${response.status}`);
         const data = await response.json();
 
         if (response.ok) {
@@ -387,11 +394,12 @@ async function fetchManagers(id) {
             renderLeads(allLeads);
             showManagersModal(data.managers, allLeads[leadIndex]?.company, id);
         } else {
-            showToast('Error fetching managers: ' + (data.detail || 'Unknown'), 'error');
+            console.error('Server error:', data);
+            showToast('Error: ' + (data.detail || 'Server returned ' + response.status), 'error');
         }
     } catch (error) {
-        showToast('Error fetching managers', 'error');
-        console.error(error);
+        console.error('Fetch error after ' + (Date.now() - startTime) / 1000 + 's:', error);
+        showToast('Error: ' + error.message, 'error');
     }
 }
 

@@ -197,7 +197,8 @@ class LinkedInService:
                 # Wait for results
                 print("   Waiting for search results...")
                 try:
-                    await page.wait_for_selector("div[role='listitem'], .reusable-search__result-container", timeout=45000)
+                    # Reduced timeout for faster fallback
+                    await page.wait_for_selector("div[role='listitem'], .reusable-search__result-container", timeout=20000)
                 except:
                     print("   ⚠️ Primary list selector timed out. Checking for 'No results' or other structures.")
                 
@@ -205,6 +206,7 @@ class LinkedInService:
                 # Try multiple selectors to find result items
                 results = await page.query_selector_all("div[role='listitem'], .reusable-search__result-container, li.reusable-search__result-container, li")
                 
+                print(f"   Potential results found: {len(results)}")
                 with open("scraper_debug.log", "a", encoding="utf-8") as log:
                     log.write(f"   Potential results found: {len(results)}\n")
                 
