@@ -3,4 +3,5 @@
 set -o errexit
 
 pip install -r requirements.txt
+export PLAYWRIGHT_BROWSERS_PATH=./playwright-browsers
 playwright install chromium
