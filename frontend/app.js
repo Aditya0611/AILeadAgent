@@ -9,6 +9,9 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('App started. API_URL:', API_URL);
     loadLeads();
     loadStats();
+    checkConnection();
+    // Check connection every 15 seconds
+    setInterval(checkConnection, 15000);
 });
 
 // ===== TOAST NOTIFICATIONS =====
@@ -466,6 +469,33 @@ async function exportCSV() {
 }
 
 // ===== UTILITY =====
+async function checkConnection() {
+    const statusEl = document.getElementById('connectionStatus');
+    const dot = statusEl.querySelector('.status-dot');
+    const text = statusEl.querySelector('.status-text');
+
+    try {
+        const response = await fetch(`${API_URL}/debug/status`, {
+            method: 'GET',
+            mode: 'cors',
+            credentials: 'omit'
+        });
+
+        if (response.ok) {
+            statusEl.classList.remove('offline');
+            statusEl.classList.add('online');
+            text.textContent = 'Online';
+        } else {
+            throw new Error('Server returned ' + response.status);
+        }
+    } catch (error) {
+        console.warn('Backend connection failed:', error);
+        statusEl.classList.remove('online');
+        statusEl.classList.add('offline');
+        text.textContent = 'Offline';
+    }
+}
+
 function getScoreClass(score) {
     if (score >= 7) return 'score-high';
     if (score >= 4) return 'score-medium';
