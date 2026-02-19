@@ -268,6 +268,7 @@ async def enrich_lead_managers(lead_id: str):
             f.write(f"Enriching managers for lead {lead_id}, company: {company}\n")
             
         # Fetch managers (Async call now)
+        print(f"API: Triggering LinkedIn search for company: {company}")
         managers = await linkedin_service.search_managers(company)
         
         # Check if results are restricted (mostly "LinkedIn Member")
@@ -309,6 +310,7 @@ async def enrich_lead_managers(lead_id: str):
 
         with open("api_trace.log", "a", encoding="utf-8") as f:
             f.write(f"Scraper/Discovery returned {len(managers)} managers\n")
+        print(f"API: Scraper/Discovery returned {len(managers)} managers for {company}")
         
         # Update lead
         if db.supabase:

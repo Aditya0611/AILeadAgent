@@ -135,22 +135,32 @@ class LinkedInService:
             return []
 
         async with async_playwright() as p:
-            # Launch browser
+            # Launch browser with realistic User-Agent
+            user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            
             try:
                 # Log executable check if path is set
                 if os.getenv('PLAYWRIGHT_BROWSERS_PATH'):
-                    with open("scraper_debug.log", "a", encoding="utf-8") as log:
-                        log.write(f"Attempting to launch browser using path: {os.getenv('PLAYWRIGHT_BROWSERS_PATH')}\n")
+                    print(f"DEBUG: Using custom browsers path: {os.getenv('PLAYWRIGHT_BROWSERS_PATH')}")
 
-                browser = await p.chromium.launch(headless=self.use_headless)
-                context = await browser.new_context()
+                browser = await p.chromium.launch(
+                    headless=self.use_headless,
+                    args=["--disable-blink-features=AutomationControlled"]
+                )
+                
+                context = await browser.new_context(
+                    user_agent=user_agent,
+                    viewport={'width': 1920, 'height': 1080}
+                )
+                
+                # Add stealth scripts
                 page = await context.new_page()
+                await page.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+                
             except Exception as e:
                 import traceback
                 error_msg = traceback.format_exc()
-                with open("scraper_debug.log", "a", encoding="utf-8") as log:
-                    log.write(f"FATAL: Browser launch failed: {e}\n{error_msg}\n")
-                print(f"FATAL: Browser launch failed: {e}")
+                print(f"FATAL: Browser launch failed: {e}\n{error_msg}")
                 return []
             
             try:
@@ -163,15 +173,20 @@ class LinkedInService:
                 
                 # Wait for login to complete (check for feed or search box)
                 try:
-                    await page.wait_for_selector(".global-nav__search", timeout=45000)
-                    with open("scraper_debug.log", "a", encoding="utf-8") as log:
-                        log.write("   ✅ Login Successful!\n")
-                    print("   Login Successful!")
+                    await page.wait_for_selector(".global-nav__search", timeout=30000)
+                    print("   ✅ Login Successful!")
                 except:
-                    await page.screenshot(path="debug_login_failure.png")
-                    with open("scraper_debug.log", "a", encoding="utf-8") as log:
-                        log.write("   ⚠️ Login challenge or timeout. Screenshot saved to debug_login_failure.png\n")
-                    print("   ⚠️ Login might have failed or verify challenge appeared. Screenshot saved.")
+                    # Capture screenshot for Render debug
+                    screenshot_path = "debug_login_failure.png"
+                    await page.screenshot(path=screenshot_path)
+                    print(f"   ⚠️ Login challenge or timeout. Screenshot saved to {screenshot_path}")
+                    print(f"   Current URL: {page.url}")
+                    # Log more details from the page
+                    try:
+                        title = await page.title()
+                        print(f"   Page Title: {title}")
+                    except:
+                        pass
                 
                 # 2. Search for Managers
                 search_query = f"Manager at {company_name}"
