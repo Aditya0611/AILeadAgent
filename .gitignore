@@ -28,6 +28,8 @@ debug_*.html
 debug_*.png
 *.png
 *.txt
+!requirements.txt
+
 
 # Output files
 backend_url.txt
