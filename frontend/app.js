@@ -110,7 +110,7 @@ function renderLeads(leads) {
     }
 
     tbody.innerHTML = leads.map(lead => `
-        <tr class="lead-row" onclick="openSidebar(${lead.id})">
+        <tr class="lead-row" onclick="openSidebar('${lead.id}')">
             <td class="lead-name-cell">
                 <strong>${escHtml(lead.name)}</strong>
                 <div class="tags-container">
@@ -403,7 +403,7 @@ async function fetchManagers(id) {
     startSilentLogPolling();
 
     try {
-        const response = await fetch(`${API_URL}/enrich/${id}`, { method: 'POST' });
+        const response = await fetch(`${API_URL}/leads/${id}/enrich-managers`, { method: 'POST' });
         const result = await response.json();
 
         if (response.ok) {
