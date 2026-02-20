@@ -181,7 +181,40 @@ LINKEDIN_PASSWORD = os.getenv("LINKEDIN_PASSWORD")
                     await page.fill("#username", self.email)
                     await page.fill("#password", self.password)
                     await page.click("button[type='submit']")
-                
+                    
+                    # 1b. Check for 2FA / Checkpoint
+                    await asyncio.sleep(5)
+                    if "checkpoint" in page.url or await page.query_selector("input[name='pin']"):
+                        await self.log_msg("ACTION REQUIRED: LinkedIn is asking for a verification code. Please enter it in the dashboard console.")
+                        
+                        # Wait for code file from API
+                        code_file = "2fa_code.txt"
+                        if os.path.exists(code_file): os.remove(code_file)
+                        
+                        max_wait = 180 # 3 minutes
+                        start_wait = time.time()
+                        code = None
+                        while time.time() - start_wait < max_wait:
+                            if os.path.exists(code_file):
+                                with open(code_file, "r") as f:
+                                    code = f.read().strip()
+                                if code: break
+                            await asyncio.sleep(2)
+                        
+                        if code:
+                            await self.log_msg(f"Applying code: {code}")
+                            # Target common LinkedIn 2FA pin inputs
+                            try:
+                                await page.fill("input[name='pin']", code)
+                                await page.click("button[type='submit']")
+                                await asyncio.sleep(5)
+                            except:
+                                await self.log_msg("Could not find pin input. Scraper may fail.")
+                            if os.path.exists(code_file): os.remove(code_file)
+                        else:
+                            await self.log_msg("ERROR: 2FA Timeout. Scraper aborted.")
+                            return []
+
                 logged_in = False
                 try:
                     await page.wait_for_selector(".global-nav__search, .nav-item--home", timeout=20000)

@@ -390,6 +390,7 @@ async function handleManagers(id) {
 }
 
 async function fetchManagers(id) {
+    window.prompting2FA = false;
     showToast('Fetching managers…', 'info', 6000);
 
     // Show Progress Console
@@ -619,11 +620,41 @@ async function updateProgressConsole() {
                 return `<div class="log-line ${typeClass}">${timestamp}${escHtml(content)}</div>`;
             }).join('');
 
+            // Check for 2FA requirement
+            if (logContainer.innerText.includes("ACTION REQUIRED") && !window.prompting2FA) {
+                window.prompting2FA = true;
+                const code = prompt("LinkedIn is asking for a verification code. Please enter it here:");
+                if (code) {
+                    submit2FA(code);
+                } else {
+                    window.prompting2FA = false;
+                }
+            }
+
             // Auto scroll to bottom
             const body = document.getElementById('consoleBody');
             body.scrollTop = body.scrollHeight;
         }
     } catch (error) {
         console.warn('Failed to fetch logs:', error);
+    }
+}
+
+async function submit2FA(code) {
+    try {
+        const response = await fetch(`${API_URL}/submit-2fa`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code })
+        });
+        if (response.ok) {
+            showToast("2FA Code submitted! Scraper will continue.", "success");
+        } else {
+            showToast("Failed to submit 2FA code.", "error");
+            window.prompting2FA = false;
+        }
+    } catch (error) {
+        console.error("Error submitting 2FA:", error);
+        window.prompting2FA = false;
     }
 }

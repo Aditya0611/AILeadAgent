@@ -90,6 +90,9 @@ class AgentRunRequest(BaseModel):
     target_persona: Optional[str] = None
     keywords: List[str] = []
 
+class TwoFactorRequest(BaseModel):
+    code: str
+
 @app.get("/")
 async def read_root():
     return {"message": "Lead Generation API", "version": "1.0"}
@@ -198,6 +201,15 @@ async def run_agent(request: AgentRunRequest, background_tasks: BackgroundTasks)
         return {"message": "Agent started in background! Check back in a few minutes for new leads.", "query": request.dict()}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/submit-2fa")
+async def submit_2fa(request: TwoFactorRequest):
+    """Save the 2FA code provided by the user"""
+    import os
+    # Save to a temporary file that the scraper will poll
+    with open("2fa_code.txt", "w", encoding="utf-8") as f:
+        f.write(request.code.strip())
+    return {"message": "Code received! The scraper will now continue."}
 
 @app.get("/export-csv")
 def export_csv():
