@@ -592,7 +592,14 @@ async function updateProgressConsole() {
         if (!response.ok) return;
 
         const data = await response.json();
-        const logs = data.logs || [];
+
+        // Handle dictionary of logs from backend
+        let logs = [];
+        if (data.logs && data.logs["scraper_debug.log"]) {
+            logs = data.logs["scraper_debug.log"];
+        } else if (Array.isArray(data.logs)) {
+            logs = data.logs;
+        }
 
         if (logs.length > 0) {
             if (welcome) welcome.style.display = 'none';
