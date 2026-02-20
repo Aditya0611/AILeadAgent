@@ -12,15 +12,25 @@ from config import LINKEDIN_ACCESS_TOKEN, BROWSER_HEADLESS
 LINKEDIN_EMAIL = os.getenv("LINKEDIN_EMAIL")
 LINKEDIN_PASSWORD = os.getenv("LINKEDIN_PASSWORD")
 
-class LinkedInService:
+    async def log_msg(self, message: str, is_important: bool = False):
+        """Standardized logger that adds timestamps for the UI console."""
+        timestamp = time.strftime("[%H:%M:%S]")
+        formatted_msg = f"{timestamp} {message}"
+        print(formatted_msg)
+        with open("scraper_debug.log", "a", encoding="utf-8") as f:
+            f.write(formatted_msg + "\n")
+
     def __init__(self):
-        print("LinkedInService INITIALIZED")
+        # We don't use log_msg here since it's async, but we'll manually format
+        header = f"\n--- LinkedInService INIT: {time.ctime()} ---\n"
+        print(header)
         with open("scraper_debug.log", "a", encoding="utf-8") as log:
-            log.write(f"\n--- LinkedInService INIT: {time.ctime()} ---\n")
-            log.write(f"PLAYWRIGHT_BROWSERS_PATH: {os.getenv('PLAYWRIGHT_BROWSERS_PATH')}\n")
+            log.write(header)
+            log.write(f"[{time.strftime('%H:%M:%S')}] PLAYWRIGHT_BROWSERS_PATH: {os.getenv('PLAYWRIGHT_BROWSERS_PATH')}\n")
+        
         self.email = LINKEDIN_EMAIL
         self.password = LINKEDIN_PASSWORD
-        self.use_headless = BROWSER_HEADLESS # Use config (False for local viewing)
+        self.use_headless = BROWSER_HEADLESS
 
     async def enrich_manager_profiles(self, manager_list: list):
         """
@@ -123,102 +133,82 @@ class LinkedInService:
         """
         Scrapes LinkedIn for managers at the specified company using Playwright.
         """
-        loop = asyncio.get_running_loop()
-        with open("scraper_debug.log", "a", encoding="utf-8") as log:
-            log.write(f"\n--- SCRAPER START: {company_name} ---\n")
-            log.write(f"Active Event Loop: {type(loop)}\n")
-        print(f"Starting LinkedIn Scraper for: {company_name} (Loop: {type(loop)})")
+        await self.log_msg(f"SCRAPER START: {company_name}", is_important=True)
         managers = []
         
         if not self.email or not self.password:
-            print("Missing LinkedIn Credentials in .env")
+            await self.log_msg("ERROR: Missing LinkedIn Credentials")
             return []
 
         async with async_playwright() as p:
-            # Launch browser with realistic User-Agent
             user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
             
             try:
-                # Log executable check if path is set
-                if os.getenv('PLAYWRIGHT_BROWSERS_PATH'):
-                    print(f"DEBUG: Using custom browsers path: {os.getenv('PLAYWRIGHT_BROWSERS_PATH')}")
-
                 browser = await p.chromium.launch(
                     headless=self.use_headless,
                     args=["--disable-blink-features=AutomationControlled"]
                 )
                 
-                # Use storage_state if available to bypass 2FA/Login
                 session_file = "session.json"
                 if os.path.exists(session_file):
-                    print(f"   Using existing session from {session_file}")
+                    await self.log_msg(f"Using existing session from {session_file}")
                     context = await browser.new_context(
                         storage_state=session_file,
                         user_agent=user_agent,
                         viewport={'width': 1920, 'height': 1080}
                     )
                 else:
-                    print("   No session.json found. Proceeding with manual login.")
+                    await self.log_msg("No session.json found. Proceeding with manual login.")
                     context = await browser.new_context(
                         user_agent=user_agent,
                         viewport={'width': 1920, 'height': 1080}
                     )
                 
-                # Add stealth scripts
                 page = await context.new_page()
                 await page.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
                 
             except Exception as e:
-                import traceback
-                error_msg = traceback.format_exc()
-                print(f"FATAL: Browser/Context launch failed: {e}\n{error_msg}")
+                await self.log_msg(f"FATAL: Browser launch failed: {e}")
                 return []
             
             try:
-                # 1. Login (only if needed)
-                print("   Checking login status...")
+                await self.log_msg("Checking login status...")
                 await page.goto("https://www.linkedin.com/feed/", timeout=30000)
                 
-                # Check if we are already logged in
                 if "login" in page.url or await page.query_selector("#username"):
-                    print("   Session expired or missing. Logging in manually...")
+                    await self.log_msg("Session expired. Logging in manually...")
                     await page.goto("https://www.linkedin.com/login")
                     await page.fill("#username", self.email)
                     await page.fill("#password", self.password)
                     await page.click("button[type='submit']")
                 
-                # Wait for login to complete (check for feed or search box)
+                logged_in = False
                 try:
-                    await page.wait_for_selector(".global-nav__search", timeout=30000)
-                    print("   ✅ Login Successful!")
-                    # Refresh session state if we logged in manually
-                    if not os.path.exists(session_file):
-                        await context.storage_state(path=session_file)
+                    await page.wait_for_selector(".global-nav__search, .nav-item--home", timeout=20000)
+                    await self.log_msg("LOGIN SUCCESSFUL (Detected via nav)")
+                    logged_in = True
                 except:
-                    # Capture screenshot for Render debug
-                    screenshot_path = "debug_login_failure.png"
-                    await page.screenshot(path=screenshot_path)
-                    print(f"   ⚠️ Login challenge or timeout. Screenshot saved to {screenshot_path}")
-                    print(f"   Current URL: {page.url}")
-                    # Log more details from the page
-                    try:
-                        title = await page.title()
-                        print(f"   Page Title: {title}")
-                    except:
-                        pass
+                    if "linkedin.com/feed" in page.url or "linkedin.com/search" in page.url:
+                        await self.log_msg("LOGIN SUCCESSFUL (Detected via URL)")
+                        logged_in = True
+                    else:
+                        await self.log_msg("LOGIN DELAY/CHALLENGE")
                 
-                # 2. Search for Managers
+                if logged_in:
+                    if not os.path.exists(session_file):
+                        await self.log_msg(f"Saving new session to {session_file}")
+                        await context.storage_state(path=session_file)
+                
                 search_query = f"Manager at {company_name}"
-                print(f"   Searching for: {search_query}")
+                await self.log_msg(f"Searching for: {search_query}")
                 
                 await page.goto(f"https://www.linkedin.com/search/results/people/?keywords={search_query}&origin=GLOBAL_SEARCH_HEADER")
                 
-                # Wait for results
-                print("   Waiting for search results...")
+                await self.log_msg("Waiting for search results...")
                 try:
-                    # Reduced timeout for faster fallback
                     await page.wait_for_selector("div[role='listitem'], .reusable-search__result-container", timeout=20000)
                 except:
+                    await self.log_msg("No results found or page load slow")
                     print("   ⚠️ Primary list selector timed out. Checking for 'No results' or other structures.")
                 
                 # 3. Extract Data - Robust Strategy
@@ -314,11 +304,11 @@ class LinkedInService:
                             pass
                         
                         # Debug logging
-                        print(f"   EXTRACTED RESULT -> Name: '{name}' | Title: '{title}'")
+                        await self.log_msg(f"   EXTRACTED RESULT -> Name: '{name}' | Title: '{title}'")
                         
                         # Skip if no real data (be less aggressive on skipping if we have a title)
                         if (not name or name == "Unknown User" or name.startswith("LinkedIn Member")) and not title:
-                            print(f"   Skipping: No profile access and no title")
+                            await self.log_msg(f"   Skipping: No profile access and no title")
                             continue
 
                         manager_info = {
@@ -332,7 +322,7 @@ class LinkedInService:
                         # EXTRACT CONTACT INFO for the top managers
                         # Limit to top 3 to avoid excessive navigation/detection
                         if len(managers) < 3 and manager_info["profile_url"]:
-                            print(f"   [Contact Info] Processing {manager_info['name']}...")
+                            await self.log_msg(f"[Contact Info] Processing {manager_info['name']}...")
                             # Create a new page for contact extraction to keep search results active
                             contact_page = await context.new_page()
                             contact_details = await self.safe_extract_contact(contact_page, manager_info["profile_url"])
@@ -343,15 +333,13 @@ class LinkedInService:
 
                         managers.append(manager_info)
                     except Exception as e:
-                        print(f"   Error parsing result: {e}")
+                        await self.log_msg(f"Error parsing result: {e}")
                         continue
                         
             except Exception as e:
                 import traceback
                 error_msg = traceback.format_exc()
-                print(f"Scraper Error: {e}\n{error_msg}")
-                with open("scraper_debug.log", "a", encoding="utf-8") as log:
-                    log.write(f"Scraper Error: {e}\n{error_msg}\n")
+                await self.log_msg(f"Scraper Error: {e}\n{error_msg}")
             finally:
                 if 'browser' in locals():
                     await browser.close()

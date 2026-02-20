@@ -237,6 +237,24 @@
         </div>
     </div>
 
+    <!-- System Progress Console -->
+    <div id="progressConsole" class="progress-console">
+        <div class="console-header">
+            <div class="console-title">
+                <span class="console-icon">💻</span>
+                System Progress Console
+            </div>
+            <div class="console-actions">
+                <span id="consoleStatus" class="console-status">Inactive</span>
+                <button class="console-toggle" onclick="toggleConsole()" title="Toggle Console">▼</button>
+            </div>
+        </div>
+        <div id="consoleBody" class="console-body">
+            <div class="console-welcome">Ready. Click "Enrich Managers" to see live activity...</div>
+            <div id="logContainer" class="log-container"></div>
+        </div>
+    </div>
+
     <script src="app.js"></script>
 </body>
 

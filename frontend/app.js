@@ -12,7 +12,12 @@ document.addEventListener('DOMContentLoaded', () => {
     checkConnection();
     // Check connection every 15 seconds
     setInterval(checkConnection, 15000);
+
+    // Initial console setup
+    toggleConsole(true); // Start collapsed
 });
+
+let logPollingInterval = null;
 
 // ===== TOAST NOTIFICATIONS =====
 function showToast(message, type = 'info', duration = 3500) {
@@ -334,6 +339,10 @@ async function runAgent(event) {
     statusDiv.classList.add('active');
     statusDiv.innerHTML = '<p>🤖 Agent is running… This may take a few minutes.</p>';
 
+    // Show Progress Console
+    toggleConsole(false);
+    startLogPolling();
+
     try {
         const response = await fetch(`${API_URL}/run-agent`, {
             method: 'POST',
@@ -361,6 +370,8 @@ async function runAgent(event) {
     } finally {
         btn.disabled = false;
         btn.textContent = '🚀 Run Agent';
+        // Stop polling after some time or on success
+        setTimeout(stopLogPolling, 10000);
     }
 }
 
@@ -380,6 +391,11 @@ async function handleManagers(id) {
 
 async function fetchManagers(id) {
     showToast('Fetching managers…', 'info', 6000);
+
+    // Show Progress Console
+    toggleConsole(false);
+    startLogPolling();
+
     const startTime = Date.now();
     try {
         console.log(`Sending enrichment request for ${id} to ${API_URL}`);
@@ -403,6 +419,9 @@ async function fetchManagers(id) {
     } catch (error) {
         console.error('Fetch error after ' + (Date.now() - startTime) / 1000 + 's:', error);
         showToast('Error: ' + error.message, 'error');
+    } finally {
+        // Stop polling shortly after completion
+        setTimeout(stopLogPolling, 5000);
     }
 }
 
@@ -530,4 +549,74 @@ function formatDate(dateString) {
 function truncate(str, length) {
     if ((str || '').length <= length) return str;
     return str.substring(0, length) + '…';
+}
+
+// ===== CONSOLE LOGIC =====
+function toggleConsole(forceCollapse) {
+    const consoleEl = document.getElementById('progressConsole');
+    if (forceCollapse === true) {
+        consoleEl.classList.add('collapsed');
+    } else if (forceCollapse === false) {
+        consoleEl.classList.remove('collapsed');
+    } else {
+        consoleEl.classList.toggle('collapsed');
+    }
+}
+
+function startLogPolling() {
+    if (logPollingInterval) clearInterval(logPollingInterval);
+    document.getElementById('consoleStatus').textContent = 'Live: Syncing...';
+    document.getElementById('consoleStatus').classList.add('active');
+
+    // Initial fetch
+    updateProgressConsole();
+    // Poll every 3 seconds
+    logPollingInterval = setInterval(updateProgressConsole, 3000);
+}
+
+function stopLogPolling() {
+    if (logPollingInterval) {
+        clearInterval(logPollingInterval);
+        logPollingInterval = null;
+    }
+    document.getElementById('consoleStatus').textContent = 'Inactive';
+    document.getElementById('consoleStatus').classList.remove('active');
+}
+
+async function updateProgressConsole() {
+    const logContainer = document.getElementById('logContainer');
+    const welcome = document.querySelector('.console-welcome');
+
+    try {
+        const response = await fetch(`${API_URL}/debug/status`);
+        if (!response.ok) return;
+
+        const data = await response.json();
+        const logs = data.logs || [];
+
+        if (logs.length > 0) {
+            if (welcome) welcome.style.display = 'none';
+
+            // Format and display logs
+            logContainer.innerHTML = logs.map(line => {
+                let typeClass = '';
+                if (line.includes('SUCCESS') || line.includes('DONE')) typeClass = 'success';
+                if (line.includes('ERROR') || line.includes('FAILED')) typeClass = 'warning';
+                if (line.includes('SCRAPER START') || line.includes('Agent started')) typeClass = 'important';
+
+                // Extract timestamp if exists (e.g., [10:30:15])
+                const timestampMatch = line.match(/^\[.*?\]/);
+                const timestamp = timestampMatch ? `<span class="log-line timestamp">${timestampMatch[0]}</span>` : '';
+                const content = timestampMatch ? line.replace(timestampMatch[0], '') : line;
+
+                return `<div class="log-line ${typeClass}">${timestamp}${escHtml(content)}</div>`;
+            }).join('');
+
+            // Auto scroll to bottom
+            const body = document.getElementById('consoleBody');
+            body.scrollTop = body.scrollHeight;
+        }
+    } catch (error) {
+        console.warn('Failed to fetch logs:', error);
+    }
 }
