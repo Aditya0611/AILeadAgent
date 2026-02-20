@@ -237,21 +237,14 @@
         </div>
     </div>
 
-    <!-- System Progress Console -->
-    <div id="progressConsole" class="progress-console">
-        <div class="console-header">
-            <div class="console-title">
-                <span class="console-icon">💻</span>
-                System Progress Console
-            </div>
-            <div class="console-actions">
-                <span id="consoleStatus" class="console-status">Inactive</span>
-                <button class="console-toggle" onclick="toggleConsole()" title="Toggle Console">▼</button>
-            </div>
+    <!-- Lead Detail Sidebar -->
+    <div id="leadSidebar" class="sidebar">
+        <div class="sidebar-header">
+            <h2 id="sidebarTitle">Lead Details</h2>
+            <button class="close-btn" onclick="closeSidebar()" title="Close">✕</button>
         </div>
-        <div id="consoleBody" class="console-body">
-            <div class="console-welcome">Ready. Click "Enrich Managers" to see live activity...</div>
-            <div id="logContainer" class="log-container"></div>
+        <div id="sidebarBody" class="sidebar-body">
+            <!-- Content dynamic via JS -->
         </div>
     </div>
 

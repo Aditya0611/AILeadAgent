@@ -110,7 +110,7 @@ function renderLeads(leads) {
     }
 
     tbody.innerHTML = leads.map(lead => `
-        <tr>
+        <tr class="lead-row" onclick="openSidebar(${lead.id})">
             <td class="lead-name-cell">
                 <strong>${escHtml(lead.name)}</strong>
                 <div class="tags-container">
@@ -126,23 +126,26 @@ function renderLeads(leads) {
             </td>
             <td>
                 <div class="social-links">
-                    ${lead.website ? `<a href="${lead.website}"      target="_blank" class="social-link" title="Website">🌐</a>` : ''}
-                    ${lead.linkedin_url ? `<a href="${lead.linkedin_url}" target="_blank" class="social-link" title="LinkedIn">💼</a>` : ''}
-                    ${lead.twitter_url ? `<a href="${lead.twitter_url}"  target="_blank" class="social-link" title="Twitter">🐦</a>` : ''}
-                    ${lead.email ? `<a href="mailto:${lead.email}" class="social-link" title="${escHtml(lead.email)}">✉️</a>` : ''}
-                    ${!lead.website && !lead.linkedin_url && !lead.twitter_url && !lead.email ? '<span style="color:var(--text-muted);font-size:0.8rem">—</span>' : ''}
+                    ${lead.website ? `<a href="${lead.website}"      target="_blank" class="social-link" title="Website" onclick="event.stopPropagation()">🌐</a>` : ''}
+                    ${lead.linkedin_url ? `<a href="${lead.linkedin_url}" target="_blank" class="social-link" title="LinkedIn" onclick="event.stopPropagation()">💼</a>` : ''}
+                    ${lead.email ? `<a href="mailto:${lead.email}" class="social-link" title="${escHtml(lead.email)}" onclick="event.stopPropagation()">✉️</a>` : ''}
                 </div>
             </td>
             <td>
                 <span class="score-badge ${getScoreClass(lead.qualification_score)}">${(lead.qualification_score || 0).toFixed(1)}</span>
-                ${lead.sentiment_score != null ? `<span title="Sentiment: ${lead.sentiment_score}" style="margin-left:4px;">${getSentimentEmoji(lead.sentiment_score)}</span>` : ''}
             </td>
-            <td><span class="status-badge status-${lead.status}">${lead.status}</span></td>
+            <td>
+                <span class="status-badge status-${lead.status}">${lead.status}</span>
+                <div id="status-${lead.id}" class="inline-status" style="display: none;">
+                    <div class="spinner"></div>
+                    <span>Enriching...</span>
+                </div>
+            </td>
             <td>
                 <div class="action-buttons">
-                    <button class="btn-icon" onclick="editLead('${lead.id}')" title="Edit">✏️</button>
-                    <button class="btn-icon" onclick="handleManagers('${lead.id}')" title="View Managers">💼</button>
-                    <button class="btn-icon" onclick="deleteLead('${lead.id}')" title="Delete" style="color:#f87171;">🗑️</button>
+                    <button class="btn-icon" onclick="event.stopPropagation(); editLead('${lead.id}')" title="Edit">✏️</button>
+                    <button class="btn-icon" onclick="event.stopPropagation(); handleManagers('${lead.id}')" title="Fetch Managers">🔍</button>
+                    <button class="btn-icon" onclick="event.stopPropagation(); deleteLead('${lead.id}')" title="Delete" style="color:#f87171;">🗑️</button>
                 </div>
             </td>
         </tr>
@@ -377,97 +380,48 @@ async function runAgent(event) {
     }
 }
 
-// ===== MANAGERS =====
+// ===== MANAGERS & ENRICHMENT =====
 async function handleManagers(id) {
-    const lead = allLeads.find(l => l.id === id);
+    const lead = allLeads.find(l => String(l.id) === String(id));
     if (!lead) return;
 
-    if (lead.managers_info && lead.managers_info.length > 0) {
-        showManagersModal(lead.managers_info, lead.company, lead.id);
+    // If we have managers, just show sidebar. If not, trigger enrichment.
+    if (lead.managers && lead.managers.length > 0) {
+        openSidebar(id);
     } else {
-        if (confirm(`Fetch managers for "${lead.company || lead.name}" from LinkedIn?`)) {
-            await fetchManagers(id);
-        }
+        await fetchManagers(id);
     }
 }
 
 async function fetchManagers(id) {
+    const statusEl = document.getElementById(`status-${id}`);
+    if (statusEl) statusEl.style.display = 'flex';
+
     window.prompting2FA = false;
-    showToast('Fetching managers…', 'info', 6000);
+    showToast('Starting background enrichment...', 'info', 4000);
 
-    // Show Progress Console
-    toggleConsole(false);
-    startLogPolling();
+    startSilentLogPolling();
 
-    const startTime = Date.now();
     try {
-        console.log(`Sending enrichment request for ${id} to ${API_URL}`);
-        const response = await fetch(`${API_URL}/leads/${id}/enrich-managers`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
-        });
-
-        console.log(`Response received in ${(Date.now() - startTime) / 1000}s. Status: ${response.status}`);
-        const data = await response.json();
+        const response = await fetch(`${API_URL}/enrich/${id}`, { method: 'POST' });
+        const result = await response.json();
 
         if (response.ok) {
-            const leadIndex = allLeads.findIndex(l => l.id === id);
-            if (leadIndex !== -1) allLeads[leadIndex].managers_info = data.managers;
-            renderLeads(allLeads);
-            showManagersModal(data.managers, allLeads[leadIndex]?.company, id);
+            showToast(`Enrichment complete for ${result.company}!`, "success");
+            await loadLeads(); // Refresh leads to get new managers
+            // Sidebar will be refreshed/opened in renderLeads if needed, 
+            // but we call it here to be sure.
+            openSidebar(id);
         } else {
-            console.error('Server error:', data);
-            showToast('Error: ' + (data.detail || 'Server returned ' + response.status), 'error');
+            showToast(result.detail || "Enrichment failed", "error");
         }
-    } catch (error) {
-        console.error('Fetch error after ' + (Date.now() - startTime) / 1000 + 's:', error);
-        showToast('Error: ' + error.message, 'error');
+    } catch (e) {
+        console.error("Fetch error:", e);
+        showToast("Connection error", "error");
     } finally {
-        // Stop polling shortly after completion
-        setTimeout(stopLogPolling, 5000);
+        if (statusEl) statusEl.style.display = 'none';
+        stopSilentLogPolling();
     }
-}
-
-function showManagersModal(managers, company, leadId) {
-    const existing = document.getElementById('managersModal');
-    if (existing) existing.remove();
-
-    const html = `
-        <div id="managersModal" class="modal active" style="display:flex;">
-            <div class="modal-content" style="max-width: 580px;">
-                <div class="modal-header">
-                    <h2>💼 Managers at ${escHtml(company || 'Company')}</h2>
-                    <div style="display:flex;gap:0.5rem;align-items:center;">
-                        ${leadId ? `<button class="btn btn-secondary btn-sm" onclick="document.getElementById('managersModal').remove(); fetchManagers('${leadId}')">🔄 Refetch</button>` : ''}
-                        <button class="close-btn" onclick="document.getElementById('managersModal').remove(); document.body.style.overflow=''">✕</button>
-                    </div>
-                </div>
-                <div style="max-height: 60vh; overflow-y: auto; padding-right: 4px;">
-                    ${managers.length === 0
-            ? `<div class="empty-state"><div class="empty-icon">🤷</div><h3>No managers found</h3><p>Try refetching or check the LinkedIn URL</p></div>`
-            : managers.map(m => `
-                            <div class="manager-card">
-                                <h3>${escHtml(m.name || 'Unknown')}</h3>
-                                <div class="manager-title">${escHtml(m.title || '')}</div>
-                                <div class="manager-contact">
-                                    ${m.email ? `<div>✉️ <a href="mailto:${escHtml(m.email)}">${escHtml(m.email)}</a></div>` : ''}
-                                    ${m.phone ? `<div>📱 ${escHtml(m.phone)}</div>` : ''}
-                                    ${m.profile_url ? `<div>🔗 <a href="${escHtml(m.profile_url)}" target="_blank">View LinkedIn Profile</a></div>` : ''}
-                                </div>
-                            </div>
-                        `).join('')}
-                </div>
-            </div>
-        </div>
-    `;
-
-    document.body.insertAdjacentHTML('beforeend', html);
-    document.body.style.overflow = 'hidden';
-
-    // Close on backdrop click
-    document.getElementById('managersModal').addEventListener('click', function (e) {
-        if (e.target === this) { this.remove(); document.body.style.overflow = ''; }
-    });
 }
 
 // ===== EXPORT CSV =====
@@ -554,91 +508,133 @@ function truncate(str, length) {
     return str.substring(0, length) + '…';
 }
 
-// ===== CONSOLE LOGIC =====
-function toggleConsole(forceCollapse) {
-    const consoleEl = document.getElementById('progressConsole');
-    if (forceCollapse === true) {
-        consoleEl.classList.add('collapsed');
-    } else if (forceCollapse === false) {
-        consoleEl.classList.remove('collapsed');
-    } else {
-        consoleEl.classList.toggle('collapsed');
+// ===== SIDEBAR LOGIC =====
+function openSidebar(id) {
+    const lead = allLeads.find(l => l.id === id);
+    if (!lead) return;
+
+    const sidebar = document.getElementById('leadSidebar');
+    const body = document.getElementById('sidebarBody');
+    const title = document.getElementById('sidebarTitle');
+
+    title.textContent = lead.name;
+    sidebar.classList.add('active');
+
+    // Build sidebar content
+    body.innerHTML = `
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">📍 Contact Information</div>
+            <div class="detail-card">
+                <div class="detail-row">
+                    <div class="detail-label">Email</div>
+                    <div class="detail-value">${lead.email || 'N/A'}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Phone</div>
+                    <div class="detail-value">${lead.phone || 'N/A'}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Website</div>
+                    <div class="detail-value"><a href="${lead.website}" target="_blank" style="color:var(--primary-light)">${lead.website || 'N/A'}</a></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">🏢 Company Details</div>
+            <div class="detail-card">
+                <div class="detail-row">
+                    <div class="detail-label">Company Name</div>
+                    <div class="detail-value">${lead.company || 'N/A'}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Founding / Info</div>
+                    <div class="detail-value">${lead.funding_info || 'N/A'}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Employee Count</div>
+                    <div class="detail-value">${lead.employee_count || 'N/A'}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">💼 Discovered Managers</div>
+            <div id="sidebarManagersContainer">
+                ${renderSidebarManagers(lead)}
+            </div>
+        </div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">📝 Description & Notes</div>
+            <div class="detail-card">
+                <div class="detail-value" style="font-size:0.85rem; line-height:1.6;">
+                    ${lead.description || 'No additional notes available.'}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function renderSidebarManagers(lead) {
+    const managers = lead.managers || [];
+    if (managers.length === 0) {
+        return `
+            <div class="empty-state" style="padding: 1rem; border: 1px dashed var(--border); border-radius: var(--radius-md);">
+                <p style="font-size:0.85rem;">No managers fetched yet.</p>
+                <button class="btn btn-primary btn-sm" style="margin-top:0.5rem;" onclick="enrichLead(${lead.id})">🔍 Enrich Now</button>
+            </div>
+        `;
+    }
+
+    return managers.map(m => `
+        <div class="sidebar-manager-card">
+            <div class="manager-name">${escHtml(m.name)}</div>
+            <div class="manager-title">${escHtml(m.title)}</div>
+            ${m.profile_url ? `<a href="${m.profile_url}" target="_blank" class="btn btn-secondary btn-sm" style="font-size:0.7rem;">View LinkedIn</a>` : ''}
+        </div>
+    `).join('');
+}
+
+function closeSidebar() {
+    document.getElementById('leadSidebar').classList.remove('active');
+}
+
+// ===== SILENT LOG POLLING (Background 2FA) =====
+let silentPollingInterval = null;
+
+function startSilentLogPolling() {
+    if (silentPollingInterval) clearInterval(silentPollingInterval);
+    silentPollingInterval = setInterval(checkLogsFor2FA, 3000);
+}
+
+function stopSilentLogPolling() {
+    if (silentPollingInterval) {
+        clearInterval(silentPollingInterval);
+        silentPollingInterval = null;
     }
 }
 
-function startLogPolling() {
-    if (logPollingInterval) clearInterval(logPollingInterval);
-    document.getElementById('consoleStatus').textContent = 'Live: Syncing...';
-    document.getElementById('consoleStatus').classList.add('active');
-
-    // Initial fetch
-    updateProgressConsole();
-    // Poll every 3 seconds
-    logPollingInterval = setInterval(updateProgressConsole, 3000);
-}
-
-function stopLogPolling() {
-    if (logPollingInterval) {
-        clearInterval(logPollingInterval);
-        logPollingInterval = null;
-    }
-    document.getElementById('consoleStatus').textContent = 'Inactive';
-    document.getElementById('consoleStatus').classList.remove('active');
-}
-
-async function updateProgressConsole() {
-    const logContainer = document.getElementById('logContainer');
-    const welcome = document.querySelector('.console-welcome');
-
+async function checkLogsFor2FA() {
     try {
         const response = await fetch(`${API_URL}/debug/status`);
         if (!response.ok) return;
-
         const data = await response.json();
 
-        // Handle dictionary of logs from backend
-        let logs = [];
-        if (data.logs && data.logs["scraper_debug.log"]) {
-            logs = data.logs["scraper_debug.log"];
-        } else if (Array.isArray(data.logs)) {
-            logs = data.logs;
-        }
+        const logs = data.logs ? (data.logs["scraper_debug.log"] || []) : [];
+        const fullText = logs.join('\n');
 
-        if (logs.length > 0) {
-            if (welcome) welcome.style.display = 'none';
-
-            // Format and display logs
-            logContainer.innerHTML = logs.map(line => {
-                let typeClass = '';
-                if (line.includes('SUCCESS') || line.includes('DONE')) typeClass = 'success';
-                if (line.includes('ERROR') || line.includes('FAILED')) typeClass = 'warning';
-                if (line.includes('SCRAPER START') || line.includes('Agent started')) typeClass = 'important';
-
-                // Extract timestamp if exists (e.g., [10:30:15])
-                const timestampMatch = line.match(/^\[.*?\]/);
-                const timestamp = timestampMatch ? `<span class="log-line timestamp">${timestampMatch[0]}</span>` : '';
-                const content = timestampMatch ? line.replace(timestampMatch[0], '') : line;
-
-                return `<div class="log-line ${typeClass}">${timestamp}${escHtml(content)}</div>`;
-            }).join('');
-
-            // Check for 2FA requirement
-            if (logContainer.innerText.includes("ACTION REQUIRED") && !window.prompting2FA) {
-                window.prompting2FA = true;
-                const code = prompt("LinkedIn is asking for a verification code. Please enter it here:");
-                if (code) {
-                    submit2FA(code);
-                } else {
-                    window.prompting2FA = false;
-                }
+        if (fullText.includes("ACTION REQUIRED") && !window.prompting2FA) {
+            window.prompting2FA = true;
+            const code = prompt("LinkedIn security checkpoint! Please enter the 6-digit verification code sent to your email:");
+            if (code) {
+                submit2FA(code);
+            } else {
+                window.prompting2FA = false;
             }
-
-            // Auto scroll to bottom
-            const body = document.getElementById('consoleBody');
-            body.scrollTop = body.scrollHeight;
         }
-    } catch (error) {
-        console.warn('Failed to fetch logs:', error);
+    } catch (e) {
+        console.warn("Silent log check failed:", e);
     }
 }
 
@@ -650,7 +646,7 @@ async function submit2FA(code) {
             body: JSON.stringify({ code })
         });
         if (response.ok) {
-            showToast("2FA Code submitted! Scraper will continue.", "success");
+            showToast("2FA Code submitted! Resuming scraper...", "success");
         } else {
             showToast("Failed to submit 2FA code.", "error");
             window.prompting2FA = false;
