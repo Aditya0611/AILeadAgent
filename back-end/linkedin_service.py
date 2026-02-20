@@ -12,6 +12,7 @@ from config import LINKEDIN_ACCESS_TOKEN, BROWSER_HEADLESS
 LINKEDIN_EMAIL = os.getenv("LINKEDIN_EMAIL")
 LINKEDIN_PASSWORD = os.getenv("LINKEDIN_PASSWORD")
 
+class LinkedInService:
     async def log_msg(self, message: str, is_important: bool = False):
         """Standardized logger that adds timestamps for the UI console."""
         timestamp = time.strftime("[%H:%M:%S]")
