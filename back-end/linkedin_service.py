@@ -148,10 +148,21 @@ class LinkedInService:
                     args=["--disable-blink-features=AutomationControlled"]
                 )
                 
-                context = await browser.new_context(
-                    user_agent=user_agent,
-                    viewport={'width': 1920, 'height': 1080}
-                )
+                # Use storage_state if available to bypass 2FA/Login
+                session_file = "session.json"
+                if os.path.exists(session_file):
+                    print(f"   Using existing session from {session_file}")
+                    context = await browser.new_context(
+                        storage_state=session_file,
+                        user_agent=user_agent,
+                        viewport={'width': 1920, 'height': 1080}
+                    )
+                else:
+                    print("   No session.json found. Proceeding with manual login.")
+                    context = await browser.new_context(
+                        user_agent=user_agent,
+                        viewport={'width': 1920, 'height': 1080}
+                    )
                 
                 # Add stealth scripts
                 page = await context.new_page()
@@ -160,21 +171,29 @@ class LinkedInService:
             except Exception as e:
                 import traceback
                 error_msg = traceback.format_exc()
-                print(f"FATAL: Browser launch failed: {e}\n{error_msg}")
+                print(f"FATAL: Browser/Context launch failed: {e}\n{error_msg}")
                 return []
             
             try:
-                # 1. Login
-                print("   Logging in...")
-                await page.goto("https://www.linkedin.com/login")
-                await page.fill("#username", self.email)
-                await page.fill("#password", self.password)
-                await page.click("button[type='submit']")
+                # 1. Login (only if needed)
+                print("   Checking login status...")
+                await page.goto("https://www.linkedin.com/feed/", timeout=30000)
+                
+                # Check if we are already logged in
+                if "login" in page.url or await page.query_selector("#username"):
+                    print("   Session expired or missing. Logging in manually...")
+                    await page.goto("https://www.linkedin.com/login")
+                    await page.fill("#username", self.email)
+                    await page.fill("#password", self.password)
+                    await page.click("button[type='submit']")
                 
                 # Wait for login to complete (check for feed or search box)
                 try:
                     await page.wait_for_selector(".global-nav__search", timeout=30000)
                     print("   ✅ Login Successful!")
+                    # Refresh session state if we logged in manually
+                    if not os.path.exists(session_file):
+                        await context.storage_state(path=session_file)
                 except:
                     # Capture screenshot for Render debug
                     screenshot_path = "debug_login_failure.png"

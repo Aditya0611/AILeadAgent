@@ -371,6 +371,7 @@ async def debug_status():
         "env": {
             "PLAYWRIGHT_BROWSERS_PATH": browser_path,
             "PATH_EXISTS": path_exists,
+            "SESSION_EXISTS": os.path.exists("session.json"),
             "LINKEDIN_EMAIL_SET": bool(os.getenv('LINKEDIN_EMAIL')),
             "LINKEDIN_PASSWORD_SET": bool(os.getenv('LINKEDIN_PASSWORD')),
             "WORKING_DIR": os.getcwd()
