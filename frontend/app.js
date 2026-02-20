@@ -386,7 +386,7 @@ async function handleManagers(id) {
     if (!lead) return;
 
     // If we have managers, just show sidebar. If not, trigger enrichment.
-    if (lead.managers && lead.managers.length > 0) {
+    if (lead.managers_info && lead.managers_info.length > 0) {
         openSidebar(id);
     } else {
         await fetchManagers(id);
@@ -577,12 +577,12 @@ function openSidebar(id) {
 }
 
 function renderSidebarManagers(lead) {
-    const managers = lead.managers || [];
+    const managers = lead.managers_info || [];
     if (managers.length === 0) {
         return `
             <div class="empty-state" style="padding: 1rem; border: 1px dashed var(--border); border-radius: var(--radius-md);">
                 <p style="font-size:0.85rem;">No managers fetched yet.</p>
-                <button class="btn btn-primary btn-sm" style="margin-top:0.5rem;" onclick="enrichLead(${lead.id})">🔍 Enrich Now</button>
+                <button class="btn btn-primary btn-sm" style="margin-top:0.5rem;" onclick="handleManagers('${lead.id}')">🔍 Enrich Now</button>
             </div>
         `;
     }
