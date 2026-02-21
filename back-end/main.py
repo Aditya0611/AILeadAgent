@@ -45,10 +45,12 @@ class LeadGenAgent:
             
             # 2. Extract content
             content = self.search.extract_page_content(url)
+            
+            # 3. Analyze and Qualify (Use result snippet as fallback content if extraction fails)
             if not content:
-                continue
+                print(f"   Using search snippet for {url} (Extraction failed)")
+                content = f"Title: {result.get('title')}\nSnippet: {result.get('snippet')}"
                 
-            # 3. Analyze and Qualify
             lead = self.ai.analyze_lead(content, query)
             lead.website = url  # Ensure website is set
             
