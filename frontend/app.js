@@ -1,4 +1,4 @@
-const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+const API_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:')
     ? 'http://localhost:8001'
     : 'https://aileadagent-oupl.onrender.com';
 
@@ -364,12 +364,11 @@ async function runAgent(event) {
             statusDiv.innerHTML = '<p class="error-msg">❌ Agent failed to start. Check the API logs.</p>';
         }
     } catch (error) {
+        console.error("Run Agent Error:", error);
         statusDiv.innerHTML = '<p class="error-msg">❌ Connection error. Make sure the API is running.</p>';
     } finally {
         btn.disabled = false;
         btn.textContent = '🚀 Run Agent';
-        // Stop polling after some time or on success
-        setTimeout(stopLogPolling, 10000);
     }
 }
 
