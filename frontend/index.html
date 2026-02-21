@@ -38,6 +38,9 @@
                     <button class="btn btn-secondary" onclick="exportCSV()" id="exportBtn">
                         📥 Export CSV
                     </button>
+                    <button class="btn btn-secondary" onclick="openLogViewer()" id="logsBtn">
+                        🗒️ System Logs
+                    </button>
                     <button class="btn btn-primary" onclick="openAgentModal()" id="runAgentBtn">
                         🤖 Run Agent
                     </button>
@@ -237,7 +240,40 @@
         </div>
     </div>
 
-    <!-- Lead Detail Sidebar -->
+    <!-- Log Viewer Modal -->
+    <div id="logViewerModal" class="modal">
+        <div class="modal-content" style="max-width: 800px; height: 80vh; display: flex; flex-direction: column;">
+            <div class="modal-header">
+                <h2>🗒️ System Logs</h2>
+                <button class="close-btn" onclick="closeLogViewer()" title="Close">✕</button>
+            </div>
+            <div class="log-tabs"
+                style="display: flex; gap: 10px; margin-bottom: 15px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
+                <button class="btn btn-secondary btn-sm log-tab active" id="tab-api"
+                    onclick="switchLogTab('api_trace.log')">API Trace</button>
+                <button class="btn btn-secondary btn-sm log-tab" id="tab-scraper"
+                    onclick="switchLogTab('scraper_debug.log')">LinkedIn Scraper</button>
+                <button class="btn btn-secondary btn-sm log-tab" id="tab-agent"
+                    onclick="switchLogTab('agent.log')">Agent Search</button>
+            </div>
+            <div id="logViewerContent" class="log-viewer-container"
+                style="flex: 1; overflow: hidden; display: flex; flex-direction: column; background: #0d1117; border-radius: var(--radius-md); border: 1px solid var(--border);">
+                <div class="spinner-container" id="logSpinner"
+                    style="display: none; align-items: center; justify-content: center; flex-direction: column; height: 100%; color: #8b949e;">
+                    <div class="spinner"></div>
+                    <p style="margin-top: 10px;">Fetching logs...</p>
+                </div>
+                <pre id="logPre" class="log-content"
+                    style="flex: 1; margin: 0; padding: 15px; overflow: auto; font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 0.85rem; line-height: 1.5; color: #e6edf3; white-space: pre-wrap; word-break: break-all;"></pre>
+            </div>
+            <div class="modal-actions"
+                style="margin-top: auto; padding-top: 15px; display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" class="btn btn-secondary" onclick="closeLogViewer()">Close</button>
+                <button type="button" class="btn btn-primary" onclick="refreshCurrentLog()">🔄 Refresh Now</button>
+            </div>
+        </div>
+    </div>
+
     <div id="leadSidebar" class="sidebar">
         <div class="sidebar-header">
             <h2 id="sidebarTitle">Lead Details</h2>
