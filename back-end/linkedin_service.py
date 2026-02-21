@@ -236,14 +236,26 @@ class LinkedInService:
                 search_query = f"Manager at {company_name}"
                 await self.log_msg(f"Searching for: {search_query}")
                 
-                await page.goto(f"https://www.linkedin.com/search/results/people/?keywords={search_query}&origin=GLOBAL_SEARCH_HEADER")
+                # Use slightly more resilient navigation
+                try:
+                    await page.goto(
+                        f"https://www.linkedin.com/search/results/people/?keywords={search_query}&origin=GLOBAL_SEARCH_HEADER",
+                        wait_until="domcontentloaded",
+                        timeout=30000
+                    )
+                except Exception as e:
+                    await self.log_msg(f"Initial navigation slow ({e}), waiting for selectors anyway...")
                 
                 await self.log_msg("Waiting for search results...")
                 try:
-                    await page.wait_for_selector("div[role='listitem'], .reusable-search__result-container", timeout=20000)
-                except:
-                    await self.log_msg("No results found or page load slow")
-                    print("   ⚠️ Primary list selector timed out. Checking for 'No results' or other structures.")
+                    # Wait for results with a specific timeout
+                    await page.wait_for_selector("div[role='listitem'], .reusable-search__result-container, .search-results-container", timeout=15000)
+                except Exception as e:
+                    # Log more detail if it fails
+                    current_url = page.url
+                    await self.log_msg(f"Search list not found or timeout: {e}. Current URL: {current_url}")
+                    if "check" in current_url or "challenge" in current_url:
+                        await self.log_msg("⚠️ LinkedIn Security Challenge detected.")
                 
                 # 3. Extract Data - Robust Strategy
                 # Try multiple selectors to find result items

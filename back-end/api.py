@@ -352,7 +352,8 @@ async def enrich_lead_managers(lead_id: str):
             with open("api_trace.log", "a", encoding="utf-8") as f:
                 f.write("⚠️ Warning: Lead updated locally but could not save to Supabase (client offline)\n")
         
-        return {"message": "Lead enriched with manager details", "managers": managers}
+        msg = "Lead enriched with manager details" if managers else "LinkedIn search restricted and Google discovery returned no results for this company. Result is empty."
+        return {"message": msg, "managers": managers}
     except Exception as e:
         import traceback
         error_msg = traceback.format_exc()
