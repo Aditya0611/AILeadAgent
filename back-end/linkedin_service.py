@@ -18,16 +18,22 @@ class LinkedInService:
         timestamp = time.strftime("[%H:%M:%S]")
         formatted_msg = f"{timestamp} {message}"
         print(formatted_msg)
-        with open("scraper_debug.log", "a", encoding="utf-8") as f:
-            f.write(formatted_msg + "\n")
+        try:
+            with open("scraper_debug.log", "a", encoding="utf-8") as f:
+                f.write(formatted_msg + "\n")
+        except Exception as e:
+            print(f"Logging error: {e}")
 
     def __init__(self):
         # We don't use log_msg here since it's async, but we'll manually format
         header = f"\n--- LinkedInService INIT: {time.ctime()} ---\n"
         print(header)
-        with open("scraper_debug.log", "a", encoding="utf-8") as log:
-            log.write(header)
-            log.write(f"[{time.strftime('%H:%M:%S')}] PLAYWRIGHT_BROWSERS_PATH: {os.getenv('PLAYWRIGHT_BROWSERS_PATH')}\n")
+        try:
+            with open("scraper_debug.log", "a", encoding="utf-8") as log:
+                log.write(header)
+                log.write(f"[{time.strftime('%H:%M:%S')}] PLAYWRIGHT_BROWSERS_PATH: {os.getenv('PLAYWRIGHT_BROWSERS_PATH')}\n")
+        except Exception as e:
+            print(f"Warning: Could not write to scraper_debug.log: {e}")
         
         self.email = LINKEDIN_EMAIL
         self.password = LINKEDIN_PASSWORD
@@ -273,8 +279,11 @@ class LinkedInService:
                 results = await page.query_selector_all("div[role='listitem'], .reusable-search__result-container, li.reusable-search__result-container, li")
                 
                 print(f"   Potential results found: {len(results)}")
-                with open("scraper_debug.log", "a", encoding="utf-8") as log:
-                    log.write(f"   Potential results found: {len(results)}\n")
+                try:
+                    with open("scraper_debug.log", "a", encoding="utf-8") as log:
+                        log.write(f"   Potential results found: {len(results)}\n")
+                except:
+                    pass
                 
                 # Filter out items with minimal text (likely not profile results)
                 valid_results = []

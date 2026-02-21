@@ -7,9 +7,9 @@ if sys.platform == 'win32':
     except Exception:
         pass
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, JSONResponse
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
@@ -69,6 +69,40 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.middleware("http")
+async def catch_exceptions_middleware(request: Request, call_next):
+    try:
+        return await call_next(request)
+    except Exception as e:
+        import traceback
+        err = traceback.format_exc()
+        print(f"CRITICAL ERROR: {e}\n{err}")
+        return JSONResponse(
+            status_code=500,
+            content={"detail": "Internal Server Error", "error": str(e)},
+            headers={
+                "Access-Control-Allow-Origin": "https://www.aileadagent.store",
+                "Access-Control-Allow-Credentials": "true"
+            }
+        )
+
+@app.get("/debug/logs/{filename}")
+async def get_log_content(filename: str):
+    """Securely read log files for debugging"""
+    if filename not in ["api_trace.log", "scraper_debug.log", "agent.log"]:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    
+    import os
+    if not os.path.exists(filename):
+        return {"content": "File not found"}
+        
+    try:
+        with open(filename, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+            return {"content": "".join(lines[-100:])}
+    except Exception as e:
+        return {"content": f"Error reading log: {str(e)}"}
 
 db = DatabaseService()
 search_service = SearchService()
