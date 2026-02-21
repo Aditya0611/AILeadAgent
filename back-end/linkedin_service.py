@@ -174,7 +174,8 @@ class LinkedInService:
             
             try:
                 await self.log_msg("Checking login status...")
-                await page.goto("https://www.linkedin.com/feed/", timeout=30000)
+                # Reduced timeout to fail faster if session is stuck on Render
+                await page.goto("https://www.linkedin.com/feed/", timeout=15000)
                 
                 if "login" in page.url or await page.query_selector("#username"):
                     await self.log_msg("Session expired. Logging in manually...")
@@ -256,6 +257,16 @@ class LinkedInService:
                     await self.log_msg(f"Search list not found or timeout: {e}. Current URL: {current_url}")
                     if "check" in current_url or "challenge" in current_url:
                         await self.log_msg("⚠️ LinkedIn Security Challenge detected.")
+                    
+                    # SESSION RESET STRATEGY: If we are timing out on page loads, the session might be stale/blocked
+                    if "Timeout" in str(e) or "challenge" in current_url:
+                        session_file = "session.json"
+                        if os.path.exists(session_file):
+                            await self.log_msg("🔄 Stale/Blocked session detected. Deleting session.json for next attempt.")
+                            try:
+                                os.remove(session_file)
+                            except:
+                                pass
                 
                 # 3. Extract Data - Robust Strategy
                 # Try multiple selectors to find result items
@@ -315,7 +326,8 @@ class LinkedInService:
                                        "Analyst" in line)
                             
                             # Location indicators (skip these as names)
-                            is_location = ("," in line and len(line.split(",")) >= 2)  # "City, State" pattern
+                            if "," in line and len(line.split(",")) >= 2: continue
+                            if any(loc in line for loc in [" Area", " Region", " Greater", " Division"]): continue
                             
                             if is_title and not title:
                                 title = line
