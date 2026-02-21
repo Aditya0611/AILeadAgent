@@ -12,7 +12,7 @@ class AIService:
         if not GROQ_API_KEY:
             raise ValueError("GROQ_API_KEY must be set in .env")
         self.client = Groq(api_key=GROQ_API_KEY)
-        self.model = 'llama-3.3-70b-versatile' # Validated working model
+        self.model = 'llama-3.1-8b-instant' # More efficient for high-volume extraction
 
     def analyze_lead(self, content: str, query: SearchQuery) -> Lead:
         """
@@ -106,9 +106,9 @@ class AIService:
                         continue
                 log_event(f"Error analyzing lead (Groq): {e}", "ERROR")
                 if attempt == max_retries - 1:
-                     return Lead(name="Error Processing", source="Error", qualification_score=0.0, qualification_reasoning=f"Error: {str(e)}")
+                     return None # Return None instead of dummy Lead
 
-        return Lead(name="Error Processing", source="Error", qualification_score=0.0, qualification_reasoning="Unknown Error")
+        return None
 
     def brainstorm_leads(self, query: SearchQuery) -> List[Dict]:
         """

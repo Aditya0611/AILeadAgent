@@ -53,6 +53,10 @@ class LeadGenAgent:
                 content = f"Title: {result.get('title')}\nSnippet: {result.get('snippet')}"
                 
             lead = self.ai.analyze_lead(content, query)
+            if not lead:
+                log_event(f"   Skipping {url} (AI analysis failed or rate limited)")
+                continue
+
             lead.website = url  # Ensure website is set
             
             # 4. Save to DB
