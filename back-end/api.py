@@ -65,6 +65,7 @@ class LeadCreate(BaseModel):
     phone: Optional[str] = None
     linkedin_url: Optional[str] = None
     twitter_url: Optional[str] = None
+    industry: Optional[str] = None
     description: Optional[str] = None
     qualification_score: Optional[float] = 0.0
     qualification_reasoning: Optional[str] = None
@@ -78,6 +79,7 @@ class LeadUpdate(BaseModel):
     phone: Optional[str] = None
     linkedin_url: Optional[str] = None
     twitter_url: Optional[str] = None
+    industry: Optional[str] = None
     description: Optional[str] = None
     qualification_score: Optional[float] = None
     qualification_reasoning: Optional[str] = None
@@ -141,6 +143,7 @@ def create_lead(lead: LeadCreate):
             phone=lead.phone,
             linkedin_url=lead.linkedin_url,
             twitter_url=lead.twitter_url,
+            industry=lead.industry,
             source="Manual Entry",
             description=lead.description,
             qualification_score=lead.qualification_score,
