@@ -4,6 +4,7 @@ from models import Lead, SearchQuery
 import json
 import re
 import time
+from typing import List, Dict
 
 class AIService:
     def __init__(self):
@@ -105,3 +106,45 @@ class AIService:
                      return Lead(name="Error Processing", source="Error", qualification_score=0.0, qualification_reasoning=f"Error: {str(e)}")
 
         return Lead(name="Error Processing", source="Error", qualification_score=0.0, qualification_reasoning="Unknown Error")
+
+    def brainstorm_leads(self, query: SearchQuery) -> List[Dict]:
+        """
+        Uses AI to brainstorm real companies that fit the search criteria
+        if the Google Search API is unavailable.
+        """
+        prompt = f"""
+        You are an expert Lead Generation Specialist. Brainstorm a list of 5-10 REAL companies that fit these criteria:
+        
+        CRITERIA:
+        - Industry: {query.industry}
+        - Location: {query.location}
+        - Target Persona: {query.target_persona}
+        - Keywords: {', '.join(query.keywords)}
+
+        TASK:
+        Provide a list of companies with their names, official websites, and a snippet about them.
+        Only include real, active companies.
+        
+        RETURN JSON ONLY:
+        {{
+            "leads": [
+                {{
+                    "title": "Company Name",
+                    "link": "https://www.company.com",
+                    "snippet": "Short description of the company and why they fit the search."
+                }}
+            ]
+        }}
+        """
+        try:
+            chat_completion = self.client.chat.completions.create(
+                messages=[{"role": "user", "content": prompt}],
+                model=self.model,
+                response_format={"type": "json_object"},
+            )
+            response_text = chat_completion.choices[0].message.content
+            data = json.loads(response_text)
+            return data.get('leads', [])
+        except Exception as e:
+            print(f"Error brainstorming leads: {e}")
+            return []

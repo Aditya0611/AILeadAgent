@@ -14,22 +14,21 @@ class SearchService:
         else:
             self.use_placeholder = False
 
-    def search_leads(self, query: str, limit: int = DEFAULT_SEARCH_LIMIT, start_index: int = 1) -> List[Dict]:
+    def search_leads(self, query: str, limit: int = DEFAULT_SEARCH_LIMIT, start_index: int = 1, ai_service=None, original_query=None) -> List[Dict]:
         """
         Searches for potential leads using Google Custom Search API.
-        Falls back to placeholder data if API is not configured.
+        Falls back to AI brainstorming if API fails or is not configured.
         """
         print(f"Searching for: {query} (Page starting at {start_index})")
         
         if self.use_placeholder:
-            return self._placeholder_search()
+            return self._placeholder_search(ai_service, original_query)
         
         try:
             # Google Custom Search API endpoint
             url = "https://www.googleapis.com/customsearch/v1"
             
             results = []
-            # Google API returns max 10 results per request
             num_results = min(limit, 10)
             
             params = {
@@ -37,7 +36,7 @@ class SearchService:
                 'cx': self.search_engine_id,
                 'q': query,
                 'num': num_results,
-                'start': start_index  # Google Search start index (1-based)
+                'start': start_index
             }
             
             response = requests.get(url, params=params, timeout=10)
@@ -45,12 +44,10 @@ class SearchService:
             
             data = response.json()
             
-            # Check if we have results
             if 'items' not in data:
                 print(f"⚠️  No search results found for: {query}")
                 return []
             
-            # Parse results
             for item in data['items']:
                 results.append({
                     'title': item.get('title', 'No Title'),
@@ -64,28 +61,37 @@ class SearchService:
         except requests.exceptions.HTTPError as e:
             if e.response.status_code == 429:
                 print("❌ Google API quota exceeded (100 searches/day limit)")
+            elif e.response.status_code == 403:
+                print("❌ Google API error: 403 Forbidden. Check if Custom Search API is enabled and key is valid.")
             else:
                 print(f"❌ Google API error: {e}")
-            print("   Falling back to placeholder search")
-            return self._placeholder_search()
+            print("   Falling back to Smart AI Brainstorming...")
+            return self._placeholder_search(ai_service, original_query)
             
         except Exception as e:
             print(f"❌ Error searching with Google API: {e}")
-            print("   Falling back to placeholder search")
-            return self._placeholder_search()
+            print("   Falling back to Smart AI Brainstorming...")
+            return self._placeholder_search(ai_service, original_query)
 
-    def _placeholder_search(self) -> List[Dict]:
-        """Fallback placeholder search results"""
+    def _placeholder_search(self, ai_service=None, original_query=None) -> List[Dict]:
+        """Fallback leads - now uses AI to brainstorm if available"""
+        if ai_service and original_query:
+            print("🧠 Brainstorming intelligent leads using AI...")
+            leads = ai_service.brainstorm_leads(original_query)
+            if leads:
+                return leads
+        
+        # Static fallback if AI also fails
         return [
             {
                 "title": "Salesforce - CRM SaaS Platform", 
                 "link": "https://www.salesforce.com/", 
-                "snippet": "Leading CRM and SaaS platform for sales and marketing teams in New York and worldwide..."
+                "snippet": "Leading CRM and SaaS platform for sales and marketing teams."
             },
             {
                 "title": "HubSpot - Marketing SaaS", 
                 "link": "https://www.hubspot.com/", 
-                "snippet": "All-in-one marketing, sales, and service platform for growing businesses..."
+                "snippet": "All-in-one marketing, sales, and service platform for growing businesses."
             }
         ]
 

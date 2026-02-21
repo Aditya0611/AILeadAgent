@@ -20,7 +20,12 @@ class LeadGenAgent:
         for page in range(3):
             start_index = (page * 10) + 1
             print(f"📄 Fetching page {page + 1}...")
-            page_results = self.search.search_leads(base_search_term, start_index=start_index)
+            page_results = self.search.search_leads(
+                base_search_term, 
+                start_index=start_index, 
+                ai_service=self.ai,
+                original_query=query
+            )
             if not page_results:
                 break
             all_results.extend(page_results)
