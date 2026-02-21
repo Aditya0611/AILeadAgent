@@ -19,7 +19,7 @@ class SearchService:
         log_event(f"Searching for: {query} (Page starting at {start_index})")
         
         if self.use_placeholder:
-            return self._placeholder_search(ai_service, original_query)
+            return self._placeholder_search(ai_service, original_query, is_people_search)
         
         try:
             # Google Custom Search API endpoint
@@ -63,12 +63,12 @@ class SearchService:
             else:
                 log_event(f"❌ Google API error: {e}", "ERROR")
             log_event("   Falling back to Smart AI Brainstorming...")
-            return self._placeholder_search(ai_service, original_query)
+            return self._placeholder_search(ai_service, original_query, is_people_search)
             
         except Exception as e:
             log_event(f"❌ Error searching with Google API: {e}", "ERROR")
             log_event("   Falling back to Smart AI Brainstorming...")
-            return self._placeholder_search(ai_service, original_query)
+            return self._placeholder_search(ai_service, original_query, is_people_search)
 
     def _placeholder_search(self, ai_service=None, original_query=None, is_people_search: bool = False) -> List[Dict]:
         """Fallback leads - now uses AI to brainstorm if available"""
