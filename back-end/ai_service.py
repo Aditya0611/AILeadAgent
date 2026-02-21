@@ -116,17 +116,22 @@ class AIService:
         if the Google Search API is unavailable.
         """
         prompt = f"""
-        You are an expert Lead Generation Specialist. Brainstorm a list of 5-10 REAL companies that fit these criteria:
+        You are an expert Lead Generation Specialist. Brainstorm a list of 10 REAL companies that fit these criteria:
         
         CRITERIA:
         - Industry: {query.industry}
-        - Location: {query.location}
-        - Target Persona: {query.target_persona}
+        - Location: {query.location or 'Global'}
+        - Target Persona: {query.target_persona or 'General Business'}
         - Keywords: {', '.join(query.keywords)}
 
         TASK:
         Provide a list of companies with their names, official websites, and a snippet about them.
         Only include real, active companies.
+        
+        IMPORTANT:
+        - Ensure all strings are correctly escaped for JSON.
+        - Do not include trailing commas.
+        - The "link" must be a valid URL.
         
         RETURN JSON ONLY:
         {{
@@ -139,15 +144,25 @@ class AIService:
             ]
         }}
         """
-        try:
-            chat_completion = self.client.chat.completions.create(
-                messages=[{"role": "user", "content": prompt}],
-                model=self.model,
-                response_format={"type": "json_object"},
-            )
-            response_text = chat_completion.choices[0].message.content
-            data = json.loads(response_text)
-            return data.get('leads', [])
-        except Exception as e:
-            log_event(f"Error brainstorming leads: {e}", "ERROR")
-            return []
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                chat_completion = self.client.chat.completions.create(
+                    messages=[{"role": "user", "content": prompt}],
+                    model=self.model,
+                    response_format={"type": "json_object"},
+                )
+                response_text = chat_completion.choices[0].message.content
+                data = json.loads(response_text)
+                return data.get('leads', [])
+            except Exception as e:
+                # Retry on rate limit (429) or JSON failure (400)
+                if "429" in str(e) or "400" in str(e):
+                    if attempt < max_retries - 1:
+                        sleep_time = (attempt + 1) * 2
+                        log_event(f"⚠️ Brainstorming attempt {attempt+1} failed ({e}). Retrying...", "WARNING")
+                        time.sleep(sleep_time)
+                        continue
+                log_event(f"Error brainstorming leads: {e}", "ERROR")
+                break
+        return []
