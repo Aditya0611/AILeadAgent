@@ -108,37 +108,37 @@ function renderLeads(leads) {
 
     tbody.innerHTML = leads.map(lead => `
         <tr class="lead-row" onclick="openSidebar('${lead.id}')">
-            <td class="lead-name-cell">
+            <td class="lead-name-cell" data-label="Lead">
                 <strong>${escHtml(lead.name)}</strong>
                 <div class="tags-container">
                     ${(lead.industry_tags || []).slice(0, 3).map(tag => `<span class="tag">${escHtml(tag)}</span>`).join('')}
                 </div>
             </td>
-            <td class="lead-company-cell">
+            <td class="lead-company-cell" data-label="Company">
                 ${lead.company ? escHtml(lead.company) : '<span style="color:var(--text-muted)">—</span>'}
                 ${lead.funding_info && lead.funding_info !== 'Unknown'
             ? `<div><span class="funding-badge">💰 ${escHtml(lead.funding_info)}</span></div>`
             : ''}
                 ${lead.employees ? `<div style="font-size:0.72rem;color:var(--text-muted);margin-top:2px;">👥 ${escHtml(String(lead.employees))}</div>` : ''}
             </td>
-            <td>
+            <td data-label="Links">
                 <div class="social-links">
                     ${lead.website ? `<a href="${lead.website}"      target="_blank" class="social-link" title="Website" onclick="event.stopPropagation()">🌐</a>` : ''}
                     ${lead.linkedin_url ? `<a href="${lead.linkedin_url}" target="_blank" class="social-link" title="LinkedIn" onclick="event.stopPropagation()">💼</a>` : ''}
                     ${lead.email ? `<a href="mailto:${lead.email}" class="social-link" title="${escHtml(lead.email)}" onclick="event.stopPropagation()">✉️</a>` : ''}
                 </div>
             </td>
-            <td>
+            <td data-label="Score">
                 <span class="score-badge ${getScoreClass(lead.qualification_score)}">${(lead.qualification_score || 0).toFixed(1)}</span>
             </td>
-            <td>
+            <td data-label="Status">
                 <span class="status-badge status-${lead.status}">${lead.status}</span>
                 <div id="status-${lead.id}" class="inline-status" style="display: none;">
                     <div class="spinner"></div>
                     <span>Enriching...</span>
                 </div>
             </td>
-            <td>
+            <td data-label="Actions">
                 <div class="action-buttons">
                     <button class="btn-icon" onclick="event.stopPropagation(); editLead('${lead.id}')" title="Edit">✏️</button>
                     <button class="btn-icon" onclick="event.stopPropagation(); handleManagers('${lead.id}')" title="Fetch Managers">🔍</button>

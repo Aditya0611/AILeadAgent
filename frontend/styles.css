@@ -1262,61 +1262,211 @@ body::before {
 }
 
 /* ===== RESPONSIVE ===== */
+/* ===== RESPONSIVE DESIGN ===== */
+
+/* Large Tablets & Small Desktops */
+@media (max-width: 1024px) {
+    .dashboard {
+        padding: 1.25rem 1.5rem 2.5rem;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+    }
+
+    .sidebar {
+        width: 420px;
+    }
+}
+
+/* Tablets & Mobile Devices */
 @media (max-width: 768px) {
     .dashboard {
-        padding: 1rem 1rem 2rem;
+        padding: 1rem;
     }
 
     .header {
         padding: 1.25rem 1.5rem;
-    }
-
-    .header h1 {
-        font-size: 1.2rem;
+        margin-bottom: 1.5rem;
     }
 
     .header-content {
         flex-direction: column;
         align-items: flex-start;
-        gap: 0.75rem;
+        gap: 1rem;
     }
 
     .header-actions {
         width: 100%;
         justify-content: flex-start;
+        flex-wrap: wrap;
     }
 
     .stats-grid {
-        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        grid-template-columns: 1fr;
         gap: 0.75rem;
     }
 
+    .stat-card {
+        padding: 1.25rem;
+    }
+
     .filters-bar {
-        padding: 0.85rem 1rem;
+        padding: 1rem;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.75rem;
     }
 
     .filters-bar .filter-group {
-        min-width: 100%;
+        max-width: none !important;
     }
 
     .filter-divider {
         display: none;
     }
 
+    /* Table to Card View Transformation */
     .table-container {
-        overflow-x: auto;
+        background: transparent;
+        border: none;
+        box-shadow: none;
     }
 
+    .table-header {
+        background: var(--glass);
+        border: 1px solid var(--glass-border);
+        border-radius: var(--radius-lg);
+        margin-bottom: 1rem;
+    }
+
+    .leads-table,
+    .leads-table thead,
+    .leads-table tbody,
     .leads-table th,
+    .leads-table td,
+    .leads-table tr {
+        display: block;
+    }
+
+    .leads-table thead tr {
+        position: absolute;
+        top: -9999px;
+        left: -9999px;
+    }
+
+    .leads-table tbody tr {
+        background: var(--glass);
+        border: 1px solid var(--glass-border);
+        border-radius: var(--radius-lg);
+        margin-bottom: 1rem;
+        padding: 1rem;
+        cursor: pointer;
+        transition: transform var(--transition);
+    }
+
+    .leads-table tbody tr:hover {
+        transform: translateY(-2px);
+    }
+
     .leads-table td {
-        padding: 0.75rem 0.9rem;
+        border: none;
+        padding: 0.5rem 0 !important;
+        position: relative;
+        padding-left: 45% !important;
+        text-align: right;
+        min-height: 2rem;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+    }
+
+    .leads-table td:before {
+        content: attr(data-label);
+        position: absolute;
+        left: 0;
+        width: 40%;
+        text-align: left;
+        font-weight: 700;
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        letter-spacing: 0.05em;
+    }
+
+    .leads-table td.lead-name-cell {
+        padding-left: 0 !important;
+        text-align: left;
+        margin-bottom: 0.5rem;
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 0.75rem !important;
+        display: block;
+    }
+
+    .leads-table td.lead-name-cell:before {
+        display: none;
+    }
+
+    .leads-table td.lead-name-cell strong {
+        font-size: 1.05rem;
+        display: block;
+        margin-bottom: 0.25rem;
+    }
+
+    .social-links {
+        justify-content: flex-end;
+    }
+
+    .action-buttons {
+        justify-content: flex-end;
+    }
+
+    /* Sidebar and Modal Adjustments */
+    .sidebar {
+        width: 100%;
+        border-left: none;
     }
 
     .modal-content {
         padding: 1.5rem;
+        border-radius: var(--radius-lg);
     }
 
     .form-grid {
         grid-template-columns: 1fr;
+    }
+}
+
+/* Small phones */
+@media (max-width: 480px) {
+    .header-brand {
+        gap: 0.75rem;
+    }
+
+    .header-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 1.2rem;
+    }
+
+    .header h1 {
+        font-size: 1.1rem;
+    }
+
+    .stat-value {
+        font-size: 1.8rem;
+    }
+
+    .leads-table td {
+        padding-left: 40% !important;
+    }
+
+    .modal-actions {
+        flex-direction: column-reverse;
+    }
+
+    .modal-actions .btn {
+        width: 100%;
     }
 }
