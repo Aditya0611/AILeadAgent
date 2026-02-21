@@ -42,7 +42,7 @@ class DatabaseService:
             print(f"Error checking lead: {e}")
             return None
 
-    def list_leads(self, limit: int = 50) -> List[dict]:
+    def list_leads(self, limit: int = 200) -> List[dict]:
         """Lists latest leads from Supabase."""
         try:
             if not self.supabase:

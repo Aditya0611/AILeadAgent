@@ -1,6 +1,9 @@
-const API_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:')
-    ? 'http://localhost:8001'
-    : 'https://aileadagent-oupl.onrender.com';
+const API_URL = (
+    window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1' ||
+    window.location.hostname.startsWith('192.168.') ||
+    window.location.protocol === 'file:'
+) ? 'http://localhost:8001' : 'https://aileadagent-oupl.onrender.com';
 
 
 let allLeads = [];
@@ -325,6 +328,7 @@ window.addEventListener('click', (event) => {
 
 // ===== RUN AGENT =====
 async function runAgent(event) {
+    console.log('runAgent form submitted');
     event.preventDefault();
     const btn = document.getElementById('runAgentSubmitBtn');
     btn.disabled = true;
