@@ -2,6 +2,7 @@ from models import SearchQuery, Lead
 from database import DatabaseService
 from ai_service import AIService
 from search_service import SearchService
+from logger_util import log_event
 import time
 
 class LeadGenAgent:
@@ -11,7 +12,7 @@ class LeadGenAgent:
         self.search = SearchService()
 
     def run(self, query: SearchQuery):
-        print(f"Starting lead generation for: {query.industry} in {query.location}")
+        log_event(f"Starting lead generation for: {query.industry} in {query.location}")
         
         # 1. Search for leads (3 pages = 30 results max)
         all_results = []
@@ -19,7 +20,7 @@ class LeadGenAgent:
         
         for page in range(3):
             start_index = (page * 10) + 1
-            print(f"📄 Fetching page {page + 1}...")
+            log_event(f"📄 Fetching page {page + 1}...")
             page_results = self.search.search_leads(
                 base_search_term, 
                 start_index=start_index, 
@@ -31,16 +32,16 @@ class LeadGenAgent:
             all_results.extend(page_results)
             time.sleep(1) # Polite delay betwen pages
             
-        print(f"Found {len(all_results)} total raw results. Processing...")
+        log_event(f"Found {len(all_results)} total raw results. Processing...")
         
         for result in all_results:
             url = result['link']
-            print(f"Processing: {url}")
+            log_event(f"Processing: {url}")
             
             # Check if already in DB
             existing = self.db.get_lead_by_website(url)
             if existing:
-                print(f"Lead already exists: {url}")
+                log_event(f"Lead already exists: {url}")
                 continue
             
             # 2. Extract content
@@ -48,7 +49,7 @@ class LeadGenAgent:
             
             # 3. Analyze and Qualify (Use result snippet as fallback content if extraction fails)
             if not content:
-                print(f"   Using search snippet for {url} (Extraction failed)")
+                log_event(f"   Using search snippet for {url} (Extraction failed)")
                 content = f"Title: {result.get('title')}\nSnippet: {result.get('snippet')}"
                 
             lead = self.ai.analyze_lead(content, query)
@@ -57,9 +58,9 @@ class LeadGenAgent:
             # 4. Save to DB
             if lead.qualification_score >= 0.0:  # Save EVERYTHING for testing
                 saved_lead = self.db.save_lead(lead)
-                print(f"✅ Saved lead: {lead.name} (Score: {lead.qualification_score})")
+                log_event(f"✅ Saved lead: {lead.name} (Score: {lead.qualification_score})")
             else:
-                print(f"⏭️  Lead skipped (Low score: {lead.qualification_score})")
+                log_event(f"⏭️  Lead skipped (Low score: {lead.qualification_score})")
             
             # Rate limiting / Sleep to avoid blocking
             time.sleep(2)

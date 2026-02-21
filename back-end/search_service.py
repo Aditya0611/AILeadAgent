@@ -1,5 +1,6 @@
 import requests
 from typing import List, Dict
+from logger_util import log_event
 from config import DEFAULT_SEARCH_LIMIT, GOOGLE_API_KEY, GOOGLE_SEARCH_ENGINE_ID
 
 class SearchService:
@@ -15,11 +16,7 @@ class SearchService:
             self.use_placeholder = False
 
     def search_leads(self, query: str, limit: int = DEFAULT_SEARCH_LIMIT, start_index: int = 1, ai_service=None, original_query=None) -> List[Dict]:
-        """
-        Searches for potential leads using Google Custom Search API.
-        Falls back to AI brainstorming if API fails or is not configured.
-        """
-        print(f"Searching for: {query} (Page starting at {start_index})")
+        log_event(f"Searching for: {query} (Page starting at {start_index})")
         
         if self.use_placeholder:
             return self._placeholder_search(ai_service, original_query)
@@ -64,19 +61,19 @@ class SearchService:
             elif e.response.status_code == 403:
                 print("❌ Google API error: 403 Forbidden. Check if Custom Search API is enabled and key is valid.")
             else:
-                print(f"❌ Google API error: {e}")
-            print("   Falling back to Smart AI Brainstorming...")
+                log_event(f"❌ Google API error: {e}", "ERROR")
+            log_event("   Falling back to Smart AI Brainstorming...")
             return self._placeholder_search(ai_service, original_query)
             
         except Exception as e:
-            print(f"❌ Error searching with Google API: {e}")
-            print("   Falling back to Smart AI Brainstorming...")
+            log_event(f"❌ Error searching with Google API: {e}", "ERROR")
+            log_event("   Falling back to Smart AI Brainstorming...")
             return self._placeholder_search(ai_service, original_query)
 
     def _placeholder_search(self, ai_service=None, original_query=None) -> List[Dict]:
         """Fallback leads - now uses AI to brainstorm if available"""
         if ai_service and original_query:
-            print("🧠 Brainstorming intelligent leads using AI...")
+            log_event("🧠 Brainstorming intelligent leads using AI...")
             leads = ai_service.brainstorm_leads(original_query)
             if leads:
                 return leads

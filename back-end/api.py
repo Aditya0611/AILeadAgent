@@ -22,6 +22,7 @@ from search_service import SearchService
 from linkedin_service import LinkedInService
 from models import Lead, SearchQuery
 from main import LeadGenAgent
+from logger_util import log_event
 
 app = FastAPI(title="Lead Generation API")
 
@@ -36,6 +37,8 @@ async def startup_event():
         f.write(f"PLAYWRIGHT_BROWSERS_PATH: {os.getenv('PLAYWRIGHT_BROWSERS_PATH')}\n")
         f.write(f"LINKEDIN_EMAIL set: {bool(os.getenv('LINKEDIN_EMAIL'))}\n")
         f.write(f"LINKEDIN_PASSWORD set: {bool(os.getenv('LINKEDIN_PASSWORD'))}\n")
+    
+    log_event("--- API STARTUP ---")
     
     print(f"Startup event loop: {type(loop)}")
     print(f"Working Directory: {os.getcwd()}")
@@ -188,7 +191,7 @@ from fastapi import BackgroundTasks
 
 @app.post("/run-agent")
 async def run_agent(request: AgentRunRequest, background_tasks: BackgroundTasks):
-    """Trigger the lead generation agent in background"""
+    log_event(f"API received run-agent request: {request.industry}")
     try:
         query = SearchQuery(
             industry=request.industry,
@@ -370,7 +373,8 @@ async def debug_status():
 
     # Tail logs
     logs = {}
-    for log_file in ["api_trace.log", "scraper_debug.log"]:
+    LOG_FILES = ["api_trace.log", "scraper_debug.log", "agent.log"]
+    for log_file in LOG_FILES:
         if os.path.exists(log_file):
             try:
                 with open(log_file, "r", encoding="utf-8") as f:

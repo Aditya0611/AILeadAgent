@@ -358,15 +358,36 @@ async function runAgent(event) {
         if (response.ok) {
             statusDiv.innerHTML = `
                 <p class="success-msg">✅ Agent started! It runs in the background finding leads.</p>
+                <div id="agentLogs" style="margin-top:1rem; font-family:monospace; font-size:0.75rem; background:#000; padding:10px; border-radius:4px; max-height:150px; overflow-y:auto; border:1px solid var(--border);">
+                    <p style="color:#aaa;">Waiting for logs...</p>
+                </div>
                 <p style="margin-top:0.4rem;font-size:0.82rem;color:var(--text-muted);">The table will refresh automatically. You can close this window.</p>
             `;
+
             let checks = 0;
-            const interval = setInterval(() => {
+            const logInterval = setInterval(async () => {
+                try {
+                    const statusResp = await fetch(`${API_URL}/debug/status`);
+                    const statusData = await statusResp.json();
+                    const logs = statusData.logs["agent.log"] || [];
+                    const logContainer = document.getElementById('agentLogs');
+                    if (logContainer && logs.length > 0) {
+                        logContainer.innerHTML = logs.map(line => `<div style="margin-bottom:2px;">${escHtml(line)}</div>`).join('');
+                        logContainer.scrollTop = logContainer.scrollHeight;
+                    }
+                } catch (e) {
+                    console.warn("Log polling failed", e);
+                }
+
                 loadLeads();
                 loadStats();
-                if (++checks > 12) clearInterval(interval);
+                if (++checks > 24) { // Poll for 2 minutes (24 * 5s)
+                    clearInterval(logInterval);
+                }
             }, 5000);
-            setTimeout(() => closeAgentModal(), 3000);
+
+            // Keep modal open longer to show progress
+            setTimeout(() => closeAgentModal(), 60000);
         } else {
             statusDiv.innerHTML = '<p class="error-msg">❌ Agent failed to start. Check the API logs.</p>';
         }

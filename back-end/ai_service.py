@@ -5,6 +5,7 @@ import json
 import re
 import time
 from typing import List, Dict
+from logger_util import log_event
 
 class AIService:
     def __init__(self):
@@ -100,10 +101,10 @@ class AIService:
                 if "429" in str(e):
                     if attempt < max_retries - 1:
                         sleep_time = (attempt + 1) * 5 # Groq recovers faster usually
-                        print(f"⚠️ Groq Rate Limit. Sleeping {sleep_time}s...")
+                        log_event(f"⚠️ Groq Rate Limit. Sleeping {sleep_time}s...", "WARNING")
                         time.sleep(sleep_time)
                         continue
-                print(f"Error analyzing lead (Groq): {e}")
+                log_event(f"Error analyzing lead (Groq): {e}", "ERROR")
                 if attempt == max_retries - 1:
                      return Lead(name="Error Processing", source="Error", qualification_score=0.0, qualification_reasoning=f"Error: {str(e)}")
 
@@ -145,8 +146,7 @@ class AIService:
                 response_format={"type": "json_object"},
             )
             response_text = chat_completion.choices[0].message.content
-            data = json.loads(response_text)
             return data.get('leads', [])
         except Exception as e:
-            print(f"Error brainstorming leads: {e}")
+            log_event(f"Error brainstorming leads: {e}", "ERROR")
             return []
