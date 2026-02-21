@@ -146,6 +146,7 @@ class AIService:
                 response_format={"type": "json_object"},
             )
             response_text = chat_completion.choices[0].message.content
+            data = json.loads(response_text)
             return data.get('leads', [])
         except Exception as e:
             log_event(f"Error brainstorming leads: {e}", "ERROR")
