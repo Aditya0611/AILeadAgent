@@ -310,12 +310,18 @@ async def enrich_lead_managers(lead_id: str):
             
             # Use Google to find real names and LinkedIn URLs
             google_query = f'site:linkedin.com/in "Manager" at "{company}"'
-            discovery_results = search_service.search_leads(google_query)
+            discovery_results = search_service.search_leads(google_query, is_people_search=True)
             
             if discovery_results:
                 potential_managers = []
                 for res in discovery_results[:3]: # Top 3
                     title_raw = res.get('title', '')
+                    profile_link = res.get('link', '')
+                    
+                    # VALIDATION: Ensure it's a real LinkedIn profile link
+                    if not profile_link or "linkedin.com/in/" not in profile_link:
+                        continue
+                        
                     # Extract name from title like "Mohit Raj - Manager at Amazon | LinkedIn"
                     name_part = title_raw.split('-')[0].split('|')[0].strip()
                     potential_managers.append({
@@ -323,7 +329,7 @@ async def enrich_lead_managers(lead_id: str):
                         "title": title_raw,
                         "email": None,
                         "phone": None,
-                        "profile_url": res.get('link', '')
+                        "profile_url": profile_link
                     })
                 
                 if potential_managers:

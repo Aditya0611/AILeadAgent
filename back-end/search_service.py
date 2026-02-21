@@ -15,7 +15,7 @@ class SearchService:
         else:
             self.use_placeholder = False
 
-    def search_leads(self, query: str, limit: int = DEFAULT_SEARCH_LIMIT, start_index: int = 1, ai_service=None, original_query=None) -> List[Dict]:
+    def search_leads(self, query: str, limit: int = DEFAULT_SEARCH_LIMIT, start_index: int = 1, ai_service=None, original_query=None, is_people_search: bool = False) -> List[Dict]:
         log_event(f"Searching for: {query} (Page starting at {start_index})")
         
         if self.use_placeholder:
@@ -70,8 +70,12 @@ class SearchService:
             log_event("   Falling back to Smart AI Brainstorming...")
             return self._placeholder_search(ai_service, original_query)
 
-    def _placeholder_search(self, ai_service=None, original_query=None) -> List[Dict]:
+    def _placeholder_search(self, ai_service=None, original_query=None, is_people_search: bool = False) -> List[Dict]:
         """Fallback leads - now uses AI to brainstorm if available"""
+        if is_people_search:
+            # Never return static placeholders for people/manager searches
+            return []
+
         if ai_service and original_query:
             log_event("🧠 Brainstorming intelligent leads using AI...")
             leads = ai_service.brainstorm_leads(original_query)
