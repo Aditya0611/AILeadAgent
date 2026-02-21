@@ -29,18 +29,21 @@ app = FastAPI(title="Lead Generation API")
 @app.on_event("startup")
 async def startup_event():
     import os
-    loop = asyncio.get_running_loop()
-    with open("api_trace.log", "a", encoding="utf-8") as f:
-        f.write(f"\n--- API STARTUP: {datetime.now()} ---\n")
-        f.write(f"Startup event loop: {type(loop)}\n")
-        f.write(f"Working Directory: {os.getcwd()}\n")
-        f.write(f"PLAYWRIGHT_BROWSERS_PATH: {os.getenv('PLAYWRIGHT_BROWSERS_PATH')}\n")
-        f.write(f"LINKEDIN_EMAIL set: {bool(os.getenv('LINKEDIN_EMAIL'))}\n")
-        f.write(f"LINKEDIN_PASSWORD set: {bool(os.getenv('LINKEDIN_PASSWORD'))}\n")
+    try:
+        loop = asyncio.get_running_loop()
+        with open("api_trace.log", "a", encoding="utf-8") as f:
+            f.write(f"\n--- API STARTUP: {datetime.now()} ---\n")
+            f.write(f"Startup event loop: {type(loop)}\n")
+            f.write(f"Working Directory: {os.getcwd()}\n")
+            f.write(f"PLAYWRIGHT_BROWSERS_PATH: {os.getenv('PLAYWRIGHT_BROWSERS_PATH')}\n")
+            f.write(f"LINKEDIN_EMAIL set: {bool(os.getenv('LINKEDIN_EMAIL'))}\n")
+            f.write(f"LINKEDIN_PASSWORD set: {bool(os.getenv('LINKEDIN_PASSWORD'))}\n")
+        print(f"Startup event loop: {type(loop)}")
+    except Exception as e:
+        print(f"Startup logging failed: {e}")
     
     log_event("--- API STARTUP ---")
     
-    print(f"Startup event loop: {type(loop)}")
     print(f"Working Directory: {os.getcwd()}")
     print(f"PLAYWRIGHT_BROWSERS_PATH: {os.getenv('PLAYWRIGHT_BROWSERS_PATH')}")
     print(f"LINKEDIN_EMAIL present: {bool(os.getenv('LINKEDIN_EMAIL'))}")
@@ -48,10 +51,21 @@ async def startup_event():
 
 # Enable CORS for frontend
 # We use allow_credentials=False to allow wildcards ["*"], which is most robust for this app
+# Enable CORS for frontend
+# Explicit origins are required when allow_credentials=True
+origins = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:3000",
+    "https://www.aileadagent.store",
+    "https://aileadagent.store"
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
+    allow_origins=origins,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -273,8 +287,11 @@ def get_stats():
 @app.post("/leads/{lead_id}/enrich-managers")
 async def enrich_lead_managers(lead_id: str):
     """Fetch manager details from LinkedIn for a specific lead"""
-    with open("api_trace.log", "a", encoding="utf-8") as f:
-        f.write(f"\n--- API REQUEST: enrichment for lead {lead_id} ---\n")
+    try:
+        with open("api_trace.log", "a", encoding="utf-8") as f:
+            f.write(f"\n--- API REQUEST: enrichment for lead {lead_id} ---\n")
+    except:
+        pass
         
     try:
         # Get existing lead
@@ -289,8 +306,11 @@ async def enrich_lead_managers(lead_id: str):
             # Fallback to name if company not set
             company = lead_data.get('name')
             
-        with open("api_trace.log", "a", encoding="utf-8") as f:
-            f.write(f"Enriching managers for lead {lead_id}, company: {company}\n")
+        try:
+            with open("api_trace.log", "a", encoding="utf-8") as f:
+                f.write(f"Enriching managers for lead {lead_id}, company: {company}\n")
+        except:
+            pass
             
         # Fetch managers (Async call now)
         print(f"API: Triggering LinkedIn search for company: {company}")
@@ -298,8 +318,11 @@ async def enrich_lead_managers(lead_id: str):
         try:
             managers = await linkedin_service.search_managers(company)
         except NotImplementedError:
-             with open("api_trace.log", "a", encoding="utf-8") as f:
-                f.write(f"NotImplementedError caught in search_managers. Attempting to force Proactor loop...\n")
+             try:
+                 with open("api_trace.log", "a", encoding="utf-8") as f:
+                    f.write(f"NotImplementedError caught in search_managers. Attempting to force Proactor loop...\n")
+             except:
+                 pass
              # This usually happens if the wrong loop is current when playwright starts
              if sys.platform == 'win32':
                 loop = asyncio.get_event_loop()
@@ -317,8 +340,11 @@ async def enrich_lead_managers(lead_id: str):
                 is_restricted = True
         
         if is_restricted:
-            with open("api_trace.log", "a", encoding="utf-8") as f:
-                f.write(f"LinkedIn results restricted or empty ({len(managers)} found). Trying Google discovery...\n")
+            try:
+                with open("api_trace.log", "a", encoding="utf-8") as f:
+                    f.write(f"LinkedIn results restricted or empty ({len(managers)} found). Trying Google discovery...\n")
+            except:
+                pass
             
             # Use Google to find real names and LinkedIn URLs
             google_query = f'site:linkedin.com/in "Manager" at "{company}"'
@@ -362,11 +388,17 @@ async def enrich_lead_managers(lead_id: str):
                                 # Overwrite placeholders if we found real ones
                                 managers = (enriched + managers)[:5]
                     except Exception as e:
-                        with open("api_trace.log", "a", encoding="utf-8") as f:
-                            f.write(f"Discovery enrichment failed: {str(e)}\n")
+                        try:
+                            with open("api_trace.log", "a", encoding="utf-8") as f:
+                                f.write(f"Discovery enrichment failed: {str(e)}\n")
+                        except:
+                            pass
 
-        with open("api_trace.log", "a", encoding="utf-8") as f:
-            f.write(f"Scraper/Discovery final count: {len(managers)} managers\n")
+        try:
+            with open("api_trace.log", "a", encoding="utf-8") as f:
+                f.write(f"Scraper/Discovery final count: {len(managers)} managers\n")
+        except:
+            pass
         print(f"API: Scraper/Discovery returned {len(managers)} managers for {company}")
         
         # Update lead
@@ -376,8 +408,11 @@ async def enrich_lead_managers(lead_id: str):
             print(f"API: Supabase update status: {response.data is not None}")
         else:
             print("API: ⚠️ Warning: Supabase client not initialized")
-            with open("api_trace.log", "a", encoding="utf-8") as f:
-                f.write("⚠️ Warning: Lead updated locally but could not save to Supabase (client offline)\n")
+            try:
+                with open("api_trace.log", "a", encoding="utf-8") as f:
+                    f.write("⚠️ Warning: Lead updated locally but could not save to Supabase (client offline)\n")
+            except:
+                pass
         
         if not managers:
             msg = "LinkedIn blocked the search and Google discovery is limited. Please try again in 10 minutes."
@@ -390,8 +425,11 @@ async def enrich_lead_managers(lead_id: str):
     except Exception as e:
         import traceback
         error_msg = traceback.format_exc()
-        with open("api_trace.log", "a", encoding="utf-8") as f:
-            f.write(f"ERROR in enrichment: {str(e)}\n{error_msg}\n")
+        try:
+            with open("api_trace.log", "a", encoding="utf-8") as f:
+                f.write(f"ERROR in enrichment: {str(e)}\n{error_msg}\n")
+        except:
+            pass
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/debug/status")
