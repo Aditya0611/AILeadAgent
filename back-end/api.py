@@ -47,20 +47,11 @@ async def startup_event():
     print(f"LINKEDIN_PASSWORD present: {bool(os.getenv('LINKEDIN_PASSWORD'))}")
 
 # Enable CORS for frontend
-# NOTE: When allow_credentials=True, allow_origins cannot be ["*"]
-origins = [
-    "https://www.aileadagent.store",
-    "https://aileadagent.store",
-    "http://localhost:8000",
-    "http://localhost:8001",
-    "http://127.0.0.1:8000",
-    "http://127.0.0.1:8001",
-]
-
+# We use allow_credentials=False to allow wildcards ["*"], which is most robust for this app
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
