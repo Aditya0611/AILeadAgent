@@ -294,7 +294,17 @@ async def enrich_lead_managers(lead_id: str):
             
         # Fetch managers (Async call now)
         print(f"API: Triggering LinkedIn search for company: {company}")
-        managers = await linkedin_service.search_managers(company)
+        managers = []
+        try:
+            managers = await linkedin_service.search_managers(company)
+        except NotImplementedError:
+             with open("api_trace.log", "a", encoding="utf-8") as f:
+                f.write(f"NotImplementedError caught in search_managers. Attempting to force Proactor loop...\n")
+             # This usually happens if the wrong loop is current when playwright starts
+             if sys.platform == 'win32':
+                loop = asyncio.get_event_loop()
+                if not isinstance(loop, asyncio.WindowsProactorEventLoopPolicy):
+                     print("API: Warning: Event loop might be wrong for Playwright/Subprocess")
         
         # Check if results are restricted (mostly "LinkedIn Member")
         is_restricted = False
@@ -302,12 +312,13 @@ async def enrich_lead_managers(lead_id: str):
             is_restricted = True
         else:
             member_count = sum(1 for m in managers if m.get('name', '') == 'LinkedIn Member' or 'Greater' in m.get('name', ''))
-            if member_count >= len(managers) * 0.5: # mostly restricted
+            # If more than 30% are restricted or we have very few results, try discovery
+            if member_count >= len(managers) * 0.3 or len(managers) < 2: 
                 is_restricted = True
         
         if is_restricted:
             with open("api_trace.log", "a", encoding="utf-8") as f:
-                f.write(f"LinkedIn results restricted. Trying Google discovery...\n")
+                f.write(f"LinkedIn results restricted or empty ({len(managers)} found). Trying Google discovery...\n")
             
             # Use Google to find real names and LinkedIn URLs
             google_query = f'site:linkedin.com/in "Manager" at "{company}"'
@@ -315,7 +326,7 @@ async def enrich_lead_managers(lead_id: str):
             
             if discovery_results:
                 potential_managers = []
-                for res in discovery_results[:3]: # Top 3
+                for res in discovery_results[:5]: # Up to 5
                     title_raw = res.get('title', '')
                     profile_link = res.get('link', '')
                     
@@ -324,7 +335,13 @@ async def enrich_lead_managers(lead_id: str):
                         continue
                         
                     # Extract name from title like "Mohit Raj - Manager at Amazon | LinkedIn"
-                    name_part = title_raw.split('-')[0].split('|')[0].strip()
+                    # Handle different separators
+                    name_part = title_raw.split('-')[0].split('|')[0].split('(')[0].strip()
+                    
+                    # Basic validation of name_part
+                    if len(name_part) < 2 or "LinkedIn" in name_part:
+                        continue
+
                     potential_managers.append({
                         "name": name_part,
                         "title": title_raw,
@@ -335,12 +352,21 @@ async def enrich_lead_managers(lead_id: str):
                 
                 if potential_managers:
                     # Enrich these specific profiles via LinkedIn
-                    enriched = await linkedin_service.enrich_manager_profiles(potential_managers)
-                    if enriched:
-                        managers = enriched
+                    try:
+                        enriched = await linkedin_service.enrich_manager_profiles(potential_managers)
+                        if enriched:
+                            # Merge or replace
+                            if not managers:
+                                managers = enriched
+                            else:
+                                # Overwrite placeholders if we found real ones
+                                managers = (enriched + managers)[:5]
+                    except Exception as e:
+                        with open("api_trace.log", "a", encoding="utf-8") as f:
+                            f.write(f"Discovery enrichment failed: {str(e)}\n")
 
         with open("api_trace.log", "a", encoding="utf-8") as f:
-            f.write(f"Scraper/Discovery returned {len(managers)} managers\n")
+            f.write(f"Scraper/Discovery final count: {len(managers)} managers\n")
         print(f"API: Scraper/Discovery returned {len(managers)} managers for {company}")
         
         # Update lead

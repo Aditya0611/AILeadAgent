@@ -315,6 +315,7 @@ class LinkedInService:
                             meaningful_lines.append(line)
                         
                         # Now extract name and title from meaningful lines
+                        is_location = False
                         for line in meaningful_lines:
                             # Title indicators: contains "at" or job keywords
                             is_title = (" at " in line or 
@@ -323,29 +324,42 @@ class LinkedInService:
                                        "Engineer" in line or 
                                        "Lead" in line or
                                        "Specialist" in line or
-                                       "Analyst" in line)
+                                       "Analyst" in line or
+                                       "Executive" in line)
                             
                             # Location indicators (skip these as names)
-                            if "," in line and len(line.split(",")) >= 2: continue
-                            if any(loc in line for loc in [" Area", " Region", " Greater", " Division"]): continue
+                            is_loc = ("," in line and len(line.split(",")) >= 2) or \
+                                     any(loc in line for loc in [" Area", " Region", " Greater", " Division", " Province", " State"])
                             
+                            if is_loc:
+                                is_location = True
+                                continue
+
                             if is_title and not title:
                                 title = line
-                            elif not is_title and not is_location and not name and not line.startswith("LinkedIn Member"):
+                            elif not is_title and not name and not line.startswith("LinkedIn Member"):
                                 name = line
                         
-                        # Fallback: use first two meaningful lines
+                        # Fallback: if we only found a name and it's a "LinkedIn Member" or similar
+                        if name and ("Member" in name or "LinkedIn" in name):
+                             name = "LinkedIn Member"
+
+                        # Fallback parsing if structure is unusual
                         if not name and len(meaningful_lines) > 0:
                             # If first line looks like a title, use second as name
-                            if " at " in meaningful_lines[0]:
-                                name = meaningful_lines[1] if len(meaningful_lines) > 1 else "Unknown User"
-                                title = meaningful_lines[0]
+                            if " at " in meaningful_lines[0] or "Manager" in meaningful_lines[0]:
+                                if len(meaningful_lines) > 1:
+                                    name = meaningful_lines[1]
+                                    title = meaningful_lines[0]
+                                else:
+                                    name = "LinkedIn Member"
+                                    title = meaningful_lines[0]
                             else:
                                 name = meaningful_lines[0]
                                 title = meaningful_lines[1] if len(meaningful_lines) > 1 else "LinkedIn Member"
                         
                         if not name:
-                            name = "Unknown User"
+                            name = "LinkedIn Member"
                         if not title:
                             title = "LinkedIn Member"
                         

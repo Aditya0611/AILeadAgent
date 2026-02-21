@@ -11,7 +11,7 @@ for l in leads:
 
 if amazon_id:
     print(f"Found Amazon Lead ID: {amazon_id}")
-    url = f"http://localhost:8000/leads/{amazon_id}/enrich-managers"
+    url = f"http://localhost:8001/leads/{amazon_id}/enrich-managers"
     print(f"Triggering enrichment via: {url}")
     try:
         # Using a long timeout because scraping takes time (5 minutes)
