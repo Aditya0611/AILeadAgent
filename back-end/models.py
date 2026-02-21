@@ -10,6 +10,7 @@ class Lead(BaseModel):
     phone: Optional[str] = None
     linkedin_url: Optional[str] = None
     twitter_url: Optional[str] = None
+    industry: Optional[str] = None
     source: str
     description: Optional[str] = None
     qualification_score: Optional[float] = Field(default=0.0, ge=0.0, le=10.0)

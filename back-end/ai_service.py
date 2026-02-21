@@ -37,6 +37,7 @@ class AIService:
         RETURN JSON ONLY:
         {{
             "company_name": "Official Brand/Company Name",
+            "industry": "Primary Industry (e.g. SaaS, Fintech, etc.)",
             "website": "URL",
             "email": "email or null",
             "phone": "phone or null",
@@ -77,6 +78,7 @@ class AIService:
                     name=data.get('company_name') or 'Unknown',
                     company=data.get('company_name'),
                     website=data.get('website'),
+                    industry=data.get('industry') or query.industry,
                     email=data.get('email'),
                     phone=data.get('phone'),
                     linkedin_url=data.get('linkedin_url'),

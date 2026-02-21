@@ -91,7 +91,10 @@ function animateCount(elementId, target) {
 function renderLeads(leads) {
     const tbody = document.getElementById('leadsTableBody');
     const badge = document.getElementById('leadsCountBadge');
-    if (badge) badge.textContent = leads.length;
+    if (badge) {
+        // Show actual count of items in the table
+        badge.textContent = leads.length;
+    }
 
     if (leads.length === 0) {
         tbody.innerHTML = `
@@ -542,6 +545,10 @@ function openSidebar(id) {
                 <div class="detail-row">
                     <div class="detail-label">Founding / Info</div>
                     <div class="detail-value">${lead.funding_info || 'N/A'}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Industry</div>
+                    <div class="detail-value" style="color:var(--primary-light)">${lead.industry || 'N/A'}</div>
                 </div>
                 <div class="detail-row">
                     <div class="detail-label">Employee Count</div>

@@ -99,7 +99,7 @@ async def read_root():
 
 @app.get("/leads")
 def get_leads(
-    limit: int = 50,
+    limit: int = 200,
     min_score: Optional[float] = None,
     status: Optional[str] = None
 ):
@@ -245,7 +245,8 @@ def get_stats():
         all_leads = db.list_leads(limit=1000)
         
         total = len(all_leads)
-        qualified = len([l for l in all_leads if l.get('qualification_score', 0) >= 5.0])
+        # Using a more robust counting method if needed, but for now just being explicit
+        qualified = len([l for l in all_leads if l.get('qualification_score', 0) >= 7.0])
         avg_score = sum(l.get('qualification_score', 0) for l in all_leads) / total if total > 0 else 0
         
         status_counts = {}
