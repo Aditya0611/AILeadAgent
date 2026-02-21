@@ -14,9 +14,6 @@ document.addEventListener('DOMContentLoaded', () => {
     checkConnection();
     // Check connection every 15 seconds
     setInterval(checkConnection, 15000);
-
-    // Initial console setup
-    toggleConsole(true); // Start collapsed
 });
 
 let logPollingInterval = null;
@@ -343,10 +340,6 @@ async function runAgent(event) {
     const statusDiv = document.getElementById('agentStatus');
     statusDiv.classList.add('active');
     statusDiv.innerHTML = '<p>🤖 Agent is running… This may take a few minutes.</p>';
-
-    // Show Progress Console
-    toggleConsole(false);
-    startLogPolling();
 
     try {
         const response = await fetch(`${API_URL}/run-agent`, {
