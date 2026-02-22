@@ -64,8 +64,8 @@ origins = [
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -78,12 +78,12 @@ async def catch_exceptions_middleware(request: Request, call_next):
         import traceback
         err = traceback.format_exc()
         print(f"CRITICAL ERROR: {e}\n{err}")
+        # Always return CORS headers in error responses too
         return JSONResponse(
             status_code=500,
             content={"detail": "Internal Server Error", "error": str(e)},
             headers={
-                "Access-Control-Allow-Origin": "https://www.aileadagent.store",
-                "Access-Control-Allow-Credentials": "true"
+                "Access-Control-Allow-Origin": "*",
             }
         )
 
