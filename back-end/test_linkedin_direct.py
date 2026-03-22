@@ -1,26 +1,52 @@
 import asyncio
+import os
+import sys
 from linkedin_service import LinkedInService
-import json
+from dotenv import load_dotenv
 
-async def test():
+async def test_scraper():
+    print("\n" + "="*50)
+    print("🔍 LINKEDIN SCRAPER DIRECT TEST")
+    print("="*50 + "\n")
+    
+    load_dotenv()
+    
+    email = os.getenv("LINKEDIN_EMAIL")
+    password = os.getenv("LINKEDIN_PASSWORD")
+    
+    if not email or not password:
+        print("❌ ERROR: LinkedIn credentials missing in .env")
+        return
+
     service = LinkedInService()
-    print("Testing LinkedIn scraper directly...\n")
-    managers = await service.search_managers("Amazon.com, Inc.")
-    print(f"\n{'='*50}")
-    print(f"FINAL RESULT: Found {len(managers)} managers")
-    print(f"{'='*50}\n")
-    for i, m in enumerate(managers, 1):
-        print(f"{i}. {m['name']}")
-        print(f"   Title: {m['title']}")
-        print(f"   URL: {m['profile_url']}")
-        print()
+    # Force headful for local debugging if desired, or keep as is
+    service.use_headless = False 
     
-    # Save to file for inspection
-    with open("managers_result.json", "w", encoding="utf-8") as f:
-        json.dump(managers, f, indent=2)
-    print("Saved results to managers_result.json")
+    test_company = "Amazon"
+    print(f"🚀 Starting test for: {test_company}")
     
-    return managers
+    try:
+        managers = await service.search_managers(test_company)
+        
+        print("\n" + "="*50)
+        print(f"📊 RESULTS: Found {len(managers)} managers")
+        print("="*50)
+        
+        for i, m in enumerate(managers):
+            print(f"{i+1}. {m['name']} - {m['title']}")
+            if m.get('profile_url'):
+                print(f"   Link: {m['profile_url']}")
+            if m.get('email'):
+                print(f"   Email: {m['email']}")
+                
+    except Exception as e:
+        import traceback
+        print(f"\n❌ FATAL ERROR: {e}")
+        traceback.print_exc()
+
+    print("\n" + "="*50 + "\n")
 
 if __name__ == "__main__":
-    result = asyncio.run(test())
+    if sys.platform == 'win32':
+        asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+    asyncio.run(test_scraper())

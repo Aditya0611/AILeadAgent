@@ -62,7 +62,10 @@ class LeadGenAgent:
             # 4. Save to DB
             if lead.qualification_score >= 0.0:  # Save EVERYTHING for testing
                 saved_lead = self.db.save_lead(lead)
-                log_event(f"✅ Saved lead: {lead.name} (Score: {lead.qualification_score})")
+                if saved_lead:
+                    log_event(f"✅ Saved lead: {lead.name} (Score: {lead.qualification_score})")
+                else:
+                    log_event(f"❌ Failed to save lead: {lead.name} to Database", "ERROR")
             else:
                 log_event(f"⏭️  Lead skipped (Low score: {lead.qualification_score})")
             

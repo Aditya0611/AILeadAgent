@@ -93,7 +93,7 @@ class AIService:
                     funding_info=data.get('funding_info'),
                     industry_tags=data.get('industry_tags') or [],
                     sentiment_score=float(data.get('sentiment_score') or 0.0),
-                    social_media_links=data.get('social_media_links') or {}
+                    social_media_links={k: v for k, v in (data.get('social_media_links') or {}).items() if isinstance(v, (str, type(None)))}
                 )
 
             except Exception as e:

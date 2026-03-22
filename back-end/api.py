@@ -118,6 +118,7 @@ class LeadCreate(BaseModel):
     linkedin_url: Optional[str] = None
     twitter_url: Optional[str] = None
     industry: Optional[str] = None
+    country: Optional[str] = None
     description: Optional[str] = None
     qualification_score: Optional[float] = 0.0
     qualification_reasoning: Optional[str] = None
@@ -132,6 +133,7 @@ class LeadUpdate(BaseModel):
     linkedin_url: Optional[str] = None
     twitter_url: Optional[str] = None
     industry: Optional[str] = None
+    country: Optional[str] = None
     description: Optional[str] = None
     qualification_score: Optional[float] = None
     qualification_reasoning: Optional[str] = None
@@ -196,6 +198,7 @@ def create_lead(lead: LeadCreate):
             linkedin_url=lead.linkedin_url,
             twitter_url=lead.twitter_url,
             industry=lead.industry,
+            country=lead.country,
             source="Manual Entry",
             description=lead.description,
             qualification_score=lead.qualification_score,
@@ -515,7 +518,7 @@ async def debug_status():
 def main():
     import uvicorn
     import os
-    port = int(os.environ.get("PORT", 8001))
+    port = int(os.environ.get("PORT", 8000))
     
     if sys.platform == 'win32':
         asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())

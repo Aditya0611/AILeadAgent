@@ -13,17 +13,18 @@ class Lead(BaseModel):
     industry: Optional[str] = None
     source: str
     description: Optional[str] = None
-    qualification_score: Optional[float] = Field(default=0.0, ge=0.0, le=10.0)
+    qualification_score: Optional[float] = 0.0
     qualification_reasoning: Optional[str] = None
     status: str = "new"  # new, qualified, contacted, interested, rejected
     created_at: datetime = Field(default_factory=datetime.utcnow)
     
     # New Rich Data Fields
+    country: Optional[str] = None
     employee_count: Optional[str] = None
     funding_info: Optional[str] = None
     industry_tags: List[str] = []
     sentiment_score: Optional[float] = 0.0  # -1.0 to 1.0 (Negative to Positive)
-    social_media_links: Dict[str, str] = {}  # {"twitter": "url", "linkedin": "url"}
+    social_media_links: Dict[str, Optional[str]] = {}  # {"twitter": "url", "linkedin": "url"}
     managers_info: Optional[List[Dict]] = [] # [{"name": "...", "email": "..."}]
 
 class SearchQuery(BaseModel):

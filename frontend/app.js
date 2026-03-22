@@ -3,7 +3,7 @@ const API_URL = (
     window.location.hostname === '127.0.0.1' ||
     window.location.hostname.startsWith('192.168.') ||
     window.location.protocol === 'file:'
-) ? 'http://localhost:8001' : 'https://aileadagent-oupl.onrender.com';
+) ? 'http://localhost:8000' : 'https://aileadagent-oupl.onrender.com';
 
 
 let allLeads = [];
@@ -50,7 +50,7 @@ async function loadLeads() {
                 <div class="empty-state">
                     <div class="empty-icon">🔌</div>
                     <h3>Could not connect to API</h3>
-                    <p>Make sure the backend is running on port 8001</p>
+                    <p>Make sure the backend is running on port 8000</p>
                 </div>
             </td></tr>
         `;
@@ -101,7 +101,7 @@ function renderLeads(leads) {
 
     if (leads.length === 0) {
         tbody.innerHTML = `
-            <tr><td colspan="6">
+            <tr><td colspan="7">
                 <div class="empty-state">
                     <div class="empty-icon">🔎</div>
                     <h3>No leads found</h3>
@@ -126,6 +126,9 @@ function renderLeads(leads) {
             ? `<div><span class="funding-badge">💰 ${escHtml(lead.funding_info)}</span></div>`
             : ''}
                 ${lead.employees ? `<div style="font-size:0.72rem;color:var(--text-muted);margin-top:2px;">👥 ${escHtml(String(lead.employees))}</div>` : ''}
+            </td>
+            <td data-label="Country">
+                ${lead.country ? escHtml(lead.country) : '<span style="color:var(--text-muted)">—</span>'}
             </td>
             <td data-label="Links">
                 <div class="social-links">
@@ -159,6 +162,7 @@ function renderLeads(leads) {
 function filterLeads() {
     const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
     const statusFilter = document.getElementById('statusFilter').value;
+    const countryFilter = document.getElementById('countryFilter').value;
     const minScore = parseFloat(document.getElementById('minScoreFilter').value) || 0;
 
     let filtered = allLeads;
@@ -174,6 +178,9 @@ function filterLeads() {
     if (statusFilter) {
         filtered = filtered.filter(lead => lead.status === statusFilter);
     }
+    if (countryFilter) {
+        filtered = filtered.filter(lead => lead.country === countryFilter);
+    }
     filtered = filtered.filter(lead => (lead.qualification_score || 0) >= minScore);
 
     renderLeads(filtered);
@@ -183,6 +190,7 @@ function filterLeads() {
 function resetFilters() {
     document.getElementById('searchInput').value = '';
     document.getElementById('statusFilter').value = '';
+    document.getElementById('countryFilter').value = '';
     document.getElementById('minScoreFilter').value = '';
     renderLeads(allLeads);
 }
@@ -208,6 +216,7 @@ async function editLead(id) {
         document.getElementById('saveLeadBtn').textContent = '💾 Update Lead';
         setValue('leadName', lead.name);
         setValue('leadCompany', lead.company);
+        setValue('leadCountry', lead.country);
         setValue('leadWebsite', lead.website);
         setValue('leadEmail', lead.email);
         setValue('leadPhone', lead.phone);
@@ -238,6 +247,7 @@ async function saveLead(event) {
     const leadData = {
         name: document.getElementById('leadName').value,
         company: document.getElementById('leadCompany').value || null,
+        country: document.getElementById('leadCountry').value || null,
         website: document.getElementById('leadWebsite').value || null,
         email: document.getElementById('leadEmail').value || null,
         phone: document.getElementById('leadPhone').value || null,
@@ -578,6 +588,10 @@ function openSidebar(id) {
                 <div class="detail-row">
                     <div class="detail-label">Employee Count</div>
                     <div class="detail-value">${lead.employee_count || 'N/A'}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Country</div>
+                    <div class="detail-value">${lead.country || 'N/A'}</div>
                 </div>
             </div>
         </div>

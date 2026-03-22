@@ -414,7 +414,11 @@ class LinkedInService:
 
                         managers.append(manager_info)
                     except Exception as e:
-                        await self.log_msg(f"Error parsing result: {e}")
+                        err_msg = str(e)
+                        await self.log_msg(f"Error parsing result: {err_msg}")
+                        if "browser has been closed" in err_msg or "Target page" in err_msg:
+                            await self.log_msg("Browser/Page was closed unexpectedly. Halting extraction but keeping current results.")
+                            break
                         continue
                         
             except Exception as e:

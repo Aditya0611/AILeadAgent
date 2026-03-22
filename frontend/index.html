@@ -80,6 +80,19 @@
                 <input type="text" id="searchInput" placeholder="Search by name, company, email…"
                     onkeyup="filterLeads()">
             </div>
+            <div class="filter-group" style="max-width: 150px;">
+                <span class="filter-icon">🌍</span>
+                <select id="countryFilter" onchange="filterLeads()">
+                    <option value="">All Countries</option>
+                    <option value="Poland">Poland</option>
+                    <option value="USA">USA</option>
+                    <option value="UK">UK</option>
+                    <option value="Canada">Canada</option>
+                    <option value="Australia">Australia</option>
+                    <option value="Germany">Germany</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
             <div class="filter-group" style="max-width: 180px;">
                 <span class="filter-icon">🏷</span>
                 <select id="statusFilter" onchange="filterLeads()">
@@ -116,6 +129,7 @@
                     <tr>
                         <th>Lead</th>
                         <th>Company</th>
+                        <th>Country</th>
                         <th>Links</th>
                         <th>Score</th>
                         <th>Status</th>
@@ -124,7 +138,7 @@
                 </thead>
                 <tbody id="leadsTableBody">
                     <tr>
-                        <td colspan="6" class="loading">
+                        <td colspan="7" class="loading">
                             <span class="loading-spinner"></span>
                             Loading leads… (API on port 8001)
                         </td>
@@ -151,6 +165,10 @@
                     <div class="form-group">
                         <label>Company</label>
                         <input type="text" id="leadCompany" placeholder="Company name">
+                    </div>
+                    <div class="form-group">
+                        <label>Country</label>
+                        <input type="text" id="leadCountry" placeholder="e.g. Poland">
                     </div>
                     <div class="form-group">
                         <label>Website</label>
@@ -284,7 +302,7 @@
         </div>
     </div>
 
-    <script src="app.js"></script>
+    <script src="app_fresh.js"></script>
 </body>
 
 </html>
